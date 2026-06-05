@@ -1,0 +1,127 @@
+# yii3-settings
+
+## Install
+
+```bash
+composer require rasuvaeff/yii3-settings
+```
+
+## Rules
+
+- Typed getters: `string()`, `int()`, `float()`, `bool()`, `array()`.
+- Setting key regex: `/^[a-z][a-z0-9_.-]*$/`.
+- Type mismatch throws `SettingTypeMismatchException`.
+- Unknown setting: type default in non-strict mode, `UnknownSettingException` in strict mode.
+- Env provider maps `mail.enabled` → `APP_SETTING_MAIL_ENABLED` (prefix + upper + dots→underscores).
+- Chain provider: first match wins, order matters.
+- Cache decorator uses PSR-16 `CacheInterface`, key format: `yii3-settings:v1:<key>` by default.
+
+## API Reference
+
+### Settings
+
+```php
+use Rasuvaeff\Yii3Settings\Settings;
+use Rasuvaeff\Yii3Settings\ConfigSettingsProvider;
+use Rasuvaeff\Yii3Settings\SettingDefinition;
+use Rasuvaeff\Yii3Settings\SettingType;
+
+$provider = new ConfigSettingsProvider(
+    definitions: [
+        'mail.from' => new SettingDefinition(key: 'mail.from', type: SettingType::String, default: 'noreply@example.com'),
+        'orders.max_items' => new SettingDefinition(key: 'orders.max_items', type: SettingType::Int, default: 100),
+    ],
+    values: ['mail.from' => 'admin@example.com'],
+);
+
+$settings = new Settings(provider: $provider, definitions: $provider->getDefinitions());
+
+$settings->string(key: 'mail.from');     // 'admin@example.com'
+$settings->int(key: 'orders.max_items'); // 100 (default, no value set)
+$settings->bool(key: 'mail.enabled');    // false (type default for unknown)
+$settings->has('mail.from');             // true
+```
+
+### SettingKey
+
+```php
+$key = new SettingKey('mail.from');
+(string) $key; // 'mail.from'
+```
+
+### SettingValue
+
+```php
+$value = SettingValue::fromRaw(type: SettingType::Int, value: '42');
+$value->raw(); // 42
+```
+
+### SettingDefinition
+
+```php
+$def = new SettingDefinition(key: 'port', type: SettingType::Int, default: 8080);
+$def->key;          // 'port'
+$def->type;         // SettingType::Int
+$def->default;      // 8080
+$def->hasDefault(); // true
+$def->cast('3000'); // 3000
+```
+
+### SettingType
+
+```php
+enum SettingType: string {
+    case String = 'string';
+    case Int = 'int';
+    case Float = 'float';
+    case Bool = 'bool';
+    case Array = 'array';
+}
+```
+
+### ConfigSettingsProvider
+
+```php
+$provider = new ConfigSettingsProvider(definitions: [...], values: [...]);
+$provider->has('key');  // bool
+$provider->get('key');  // mixed (cast to definition type)
+$provider->getDefinitions(); // array<string, SettingDefinition>
+```
+
+### EnvSettingsProvider
+
+```php
+$provider = new EnvSettingsProvider(definitions: [...], prefix: 'APP_SETTING_');
+// Reads APP_SETTING_MAIL_ENABLED for 'mail.enabled'
+```
+
+### ChainSettingsProvider
+
+```php
+$chain = new ChainSettingsProvider(providers: [$env, $config]);
+$chain->has('key'); // checks in order
+$chain->get('key'); // returns from first match
+```
+
+### CachedSettingsProvider
+
+```php
+$cached = new CachedSettingsProvider(inner: $provider, cache: $psr16, definitions: [...], ttl: 60);
+$cached->get('key');  // fetches from inner, caches result
+$cached->clear('key'); // invalidates cache
+```
+
+### WritableSettingsProvider
+
+```php
+interface WritableSettingsProvider extends SettingsProvider {
+    public function set(string $key, mixed $value): void;
+    public function remove(string $key): void;
+}
+```
+
+### Exceptions
+
+- `InvalidSettingKeyException` — invalid key format
+- `UnknownSettingException` — setting not found
+- `SettingTypeMismatchException` — getter type != definition type
