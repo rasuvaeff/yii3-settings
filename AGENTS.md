@@ -10,7 +10,9 @@ decorator. Namespace: `Rasuvaeff\Yii3Settings`.
 
 Public API: `Settings` (facade), `SettingKey`, `SettingValue`,
 `SettingDefinition`, `SettingType`, `SettingsProvider`,
-`WritableSettingsProvider`, `ConfigSettingsProvider`, `EnvSettingsProvider`,
+`WritableSettingsProvider`, `SettingsInspector`, `SettingState`,
+`Cipher`, `DecryptionException`, `UnknownEncryptionKeyException`,
+`ConfigSettingsProvider`, `EnvSettingsProvider`,
 `ChainSettingsProvider`, `CachedSettingsProvider`.
 
 ## Golden rules
@@ -56,6 +58,9 @@ make test
   `yii3-settings:v1:<key>`). Cache failures are silent.
 - Unknown setting in non-strict mode returns type default, not `null`.
 - Writable provider contract exists but no DB implementation in v1.
+- `secret=true` is allowed only for `SettingType::String` — enforced at construction.
+- `Cipher` is a pure interface in core; no `ext-sodium` dependency.
+- `SettingsInspector` provides admin-facing read-model — distinct from `SettingsProvider`.
 - Code: `declare(strict_types=1)`, `final readonly class`, `#[\Override]`,
   explicit types.
 

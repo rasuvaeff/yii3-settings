@@ -134,4 +134,74 @@ final class SettingDefinitionTest extends TestCase
 
         $this->assertSame(42, $def->cast(42));
     }
+
+    #[Test]
+    public function secretDefaultsToFalse(): void
+    {
+        $def = new SettingDefinition(key: 'test', type: SettingType::String);
+
+        $this->assertFalse($def->isSecret());
+    }
+
+    #[Test]
+    public function secretFlagEnabled(): void
+    {
+        $def = new SettingDefinition(key: 'billing.stripe_key', type: SettingType::String, secret: true);
+
+        $this->assertTrue($def->isSecret());
+    }
+
+    #[Test]
+    public function throwsOnSecretWithNonStringType(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Secret flag is only supported for string type settings');
+
+        new SettingDefinition(key: 'test', type: SettingType::Int, secret: true);
+    }
+
+    /**
+     * @return array<string, array{SettingType}>
+     */
+    public static function nonStringTypeProvider(): array
+    {
+        return [
+            'int' => [SettingType::Int],
+            'float' => [SettingType::Float],
+            'bool' => [SettingType::Bool],
+            'array' => [SettingType::Array],
+        ];
+    }
+
+    #[DataProvider('nonStringTypeProvider')]
+    #[Test]
+    public function throwsOnSecretWithAnyNonStringType(SettingType $type): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new SettingDefinition(key: 'test', type: $type, secret: true);
+    }
+
+    #[Test]
+    public function fromConfigWithSecretFlag(): void
+    {
+        $def = SettingDefinition::fromConfig('billing.stripe_key', [
+            'type' => 'string',
+            'secret' => true,
+        ]);
+
+        $this->assertTrue($def->isSecret());
+        $this->assertSame(SettingType::String, $def->type);
+    }
+
+    #[Test]
+    public function fromConfigWithoutSecretFlag(): void
+    {
+        $def = SettingDefinition::fromConfig('mail.from', [
+            'type' => 'string',
+            'default' => 'noreply@example.com',
+        ]);
+
+        $this->assertFalse($def->isSecret());
+    }
 }
