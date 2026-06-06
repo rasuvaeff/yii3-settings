@@ -12,5 +12,6 @@
     </plugins>
     <issueHandlers>
         <MixedAssignment errorLevel="suppress"/>
+        <PossiblyUnusedMethod errorLevel="suppress"/>
     </issueHandlers>
 </psalm>
