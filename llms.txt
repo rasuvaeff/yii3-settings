@@ -64,7 +64,12 @@ $def->key;          // 'port'
 $def->type;         // SettingType::Int
 $def->default;      // 8080
 $def->hasDefault(); // true
+$def->isSecret();   // false
 $def->cast('3000'); // 3000
+
+// Secret flag (string-only)
+$secretDef = new SettingDefinition(key: 'billing.stripe_key', type: SettingType::String, secret: true);
+// From config: ['type' => 'string', 'secret' => true]
 ```
 
 ### SettingType
@@ -125,3 +130,42 @@ interface WritableSettingsProvider extends SettingsProvider {
 - `InvalidSettingKeyException` — invalid key format
 - `UnknownSettingException` — setting not found
 - `SettingTypeMismatchException` — getter type != definition type
+- `DecryptionException` — decryption failed (tampered data)
+- `UnknownEncryptionKeyException` — keyId in envelope not in KeyRing
+
+### Cipher
+
+```php
+use Rasuvaeff\Yii3Settings\Crypto\Cipher;
+
+interface Cipher {
+    public function encrypt(string $plaintext, string $aad): string;
+    public function decrypt(string $ciphertext, string $aad): string;
+}
+// $aad is non-empty-string, binds ciphertext to a setting key context
+```
+
+### SettingState
+
+```php
+use Rasuvaeff\Yii3Settings\SettingState;
+
+$state = new SettingState(
+    key: 'billing.currency',
+    effectiveValue: 'USD',
+    hasStoredOverride: true,
+    source: 'db',
+    isSecret: false,
+    isWritable: true,
+);
+```
+
+### SettingsInspector
+
+```php
+use Rasuvaeff\Yii3Settings\SettingsInspector;
+
+interface SettingsInspector {
+    public function describe(string $key): SettingState;
+}
+```

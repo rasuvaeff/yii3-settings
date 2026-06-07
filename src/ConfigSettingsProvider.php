@@ -58,7 +58,7 @@ final readonly class ConfigSettingsProvider implements SettingsProvider
     }
 
     /**
-     * @param array<string, SettingDefinition|array{type: string, default?: mixed}> $definitions
+     * @param array<string, SettingDefinition|array{type: string, default?: mixed, secret?: bool}> $definitions
      *
      * @return array<string, SettingDefinition>
      */

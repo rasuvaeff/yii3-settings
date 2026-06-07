@@ -51,6 +51,10 @@
         "sort-packages": true
     },
     "extra": {
+        "branch-alias": {
+            "dev-feature/encryption-and-inspector": "1.1.x-dev",
+            "dev-main": "1.1.x-dev"
+        },
         "config-plugin": {
             "di": "di.php",
             "params": "params.php"

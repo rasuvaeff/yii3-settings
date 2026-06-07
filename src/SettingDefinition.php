@@ -23,7 +23,12 @@ final readonly class SettingDefinition
         SettingKey|string $key,
         SettingType $type,
         mixed $default = null,
+        public bool $secret = false,
     ) {
+        if ($secret && $type !== SettingType::String) {
+            throw new \InvalidArgumentException('Secret flag is only supported for string type settings');
+        }
+
         $this->settingKey = $key instanceof SettingKey ? $key : new SettingKey($key);
         $this->key = $this->settingKey->toString();
         $this->type = $type;
@@ -32,7 +37,7 @@ final readonly class SettingDefinition
     }
 
     /**
-     * @param array{type: string, default?: mixed} $config
+     * @param array{type: string, default?: mixed, secret?: bool} $config
      */
     public static function fromConfig(string $key, array $config): self
     {
@@ -40,6 +45,7 @@ final readonly class SettingDefinition
             key: $key,
             type: SettingType::from($config['type']),
             default: $config['default'] ?? null,
+            secret: $config['secret'] ?? false,
         );
     }
 
@@ -51,5 +57,10 @@ final readonly class SettingDefinition
     public function hasDefault(): bool
     {
         return $this->defaultValue !== null;
+    }
+
+    public function isSecret(): bool
+    {
+        return $this->secret;
     }
 }

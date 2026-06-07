@@ -8,7 +8,7 @@
 [![PHP](https://img.shields.io/packagist/dependency-v/rasuvaeff/yii3-settings/php)](https://packagist.org/packages/rasuvaeff/yii3-settings)
 [![License](https://img.shields.io/packagist/l/rasuvaeff/yii3-settings.svg)](LICENSE.md)
 
-Typed runtime settings for Yii3: typed getters, multiple providers, cache decorator.
+Typed runtime settings for Yii3: typed getters, multiple providers, cache decorator, encryption contract, inspector.
 
 > Using an AI coding assistant? [llms.txt](llms.txt) has a compact API reference
 > you can give to the LLM to help it work with this package.
@@ -119,16 +119,66 @@ $settings->int('billing.currency'); // throws
 | Class | Description |
 |---|---|
 | `Settings` | Facade: `string()`, `int()`, `float()`, `bool()`, `array()`, `has()` |
-| `SettingDefinition` | Typed setting definition with key, type, default, cast |
+| `SettingDefinition` | Typed setting definition with key, type, default, cast, secret flag |
 | `SettingKey` | Validated setting key value object |
 | `SettingValue` | Typed normalized setting value |
 | `SettingType` | Enum: `string`, `int`, `float`, `bool`, `array` |
 | `SettingsProvider` | Read-only provider interface |
 | `WritableSettingsProvider` | Read-write provider interface |
+| `SettingsInspector` | Admin-facing read-model: `describe()` returns `SettingState` |
+| `SettingState` | Value object: key, value, source, stored override, secret, writable |
 | `ConfigSettingsProvider` | Provider from config arrays |
-| `EnvSettingsProvider` | Provider from env variables |
+| `EnvSettingsProvider` | Provider from environment variables |
 | `ChainSettingsProvider` | Provider chain (first match wins) |
 | `CachedSettingsProvider` | PSR-16 cache decorator |
+| `Cipher` | Encryption interface (AEAD with associated data) |
+| `DecryptionException` | Decryption failure (tampered data) |
+| `UnknownEncryptionKeyException` | Key ID in envelope not found in KeyRing |
+
+### Secret settings
+
+```php
+$def = new SettingDefinition(
+    key: 'billing.stripe_key',
+    type: SettingType::String,
+    secret: true,
+);
+```
+
+From config:
+
+```php
+'billing.stripe_key' => ['type' => 'string', 'secret' => true],
+```
+
+| Rule | Detail |
+|---|---|
+| `secret=true` | Only allowed for `SettingType::String` |
+| `secret=false` | Default — existing definitions unchanged |
+
+### Encryption contract
+
+```php
+use Rasuvaeff\Yii3Settings\Crypto\Cipher;
+
+// Implementations encrypt/decrypt with AAD binding to the setting key
+$ciphertext = $cipher->encrypt(plaintext: 'sk_live_xxx', aad: 'billing.stripe_key');
+$plaintext = $cipher->decrypt(ciphertext: $ciphertext, aad: 'billing.stripe_key');
+```
+
+### SettingsInspector
+
+```php
+use Rasuvaeff\Yii3Settings\SettingsInspector;
+
+$state = $inspector->describe(key: 'billing.currency');
+$state->key;               // 'billing.currency'
+$state->effectiveValue;    // 'USD' (or null for masked secrets)
+$state->hasStoredOverride; // true
+$state->source;            // 'db', 'config', or 'default'
+$state->isSecret;          // false
+$state->isWritable;        // true
+```
 
 ## Security
 
@@ -137,6 +187,8 @@ $settings->int('billing.currency'); // throws
 - Type mismatches throw `SettingTypeMismatchException`; getters do not return raw untyped values.
 - Cache failures in `CachedSettingsProvider` are treated as cache misses and do not bypass type checks.
 - Cache keys include namespace and version: `yii3-settings:v1:<key>`.
+- `secret=true` is only allowed for `SettingType::String` — enforced at construction.
+- Secret plaintext must never be logged or included in exception messages (enforced by implementations).
 
 ## Examples
 
