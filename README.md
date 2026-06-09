@@ -62,6 +62,41 @@ return [
 ];
 ```
 
+### Provider wiring (Yii3 config-plugin)
+
+The core wires only the `Settings` facade. The `SettingsProvider` implementation
+is supplied by **exactly one** source — a storage backend or, for config-array
+settings, the application. This keeps backends drop-in (install one and it is
+wired automatically) with no `Duplicate key` config conflict.
+
+| Setup | How `SettingsProvider` is bound |
+|---|---|
+| Database-backed | install [`rasuvaeff/yii3-settings-db`](https://github.com/rasuvaeff/yii3-settings-db) — it binds it automatically |
+| Config-only | bind it once in your app config (snippet below) |
+
+For a config-only setup, bind `SettingsProvider` to `ConfigSettingsProvider` in
+`config/common/di/*.php`:
+
+```php
+use Rasuvaeff\Yii3Settings\ConfigSettingsProvider;
+use Rasuvaeff\Yii3Settings\SettingsProvider;
+
+/** @var array $params */
+
+return [
+    SettingsProvider::class => [
+        'class' => ConfigSettingsProvider::class,
+        '__construct()' => [
+            'definitions' => $params['rasuvaeff/yii3-settings']['definitions'],
+            'values' => $params['rasuvaeff/yii3-settings']['values'],
+        ],
+    ],
+];
+```
+
+Bind `SettingsProvider` from a single source — a backend plus a manual binding
+reintroduces the `Duplicate key` conflict.
+
 ### Providers
 
 | Provider | Description |

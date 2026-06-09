@@ -15,6 +15,13 @@ Public API: `Settings` (facade), `SettingKey`, `SettingValue`,
 `ConfigSettingsProvider`, `EnvSettingsProvider`,
 `ChainSettingsProvider`, `CachedSettingsProvider`.
 
+DI wiring: the core `config/di.php` binds **only** `Settings` (built from the
+injected `SettingsProvider`). It must NOT bind the `SettingsProvider` interface —
+that key is owned by exactly one source (a storage backend such as
+`yii3-settings-db`, or the application's config-only binding). Two vendor packages
+binding `SettingsProvider` (or `Settings`) in the `di` group trigger a
+`yiisoft/config` `Duplicate key` error.
+
 ## Golden rules
 
 1. **Verification is mandatory.** Never claim "done" without a fresh green
