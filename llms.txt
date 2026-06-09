@@ -15,6 +15,10 @@ composer require rasuvaeff/yii3-settings
 - Env provider maps `mail.enabled` → `APP_SETTING_MAIL_ENABLED` (prefix + upper + dots→underscores).
 - Chain provider: first match wins, order matters.
 - Cache decorator uses PSR-16 `CacheInterface`, key format: `yii3-settings:v1:<key>` by default.
+- DI (config-plugin): core binds only the `Settings` facade. `SettingsProvider` is
+  NOT bound by the core — bind it via a storage backend (`yii3-settings-db`) or, for
+  config-only, in the app: `SettingsProvider::class => ['class' => ConfigSettingsProvider::class, '__construct()' => ['definitions' => ..., 'values' => ...]]`.
+  Binding it from two sources triggers a `yiisoft/config` `Duplicate key` error.
 
 ## API Reference
 
