@@ -7,24 +7,26 @@ namespace Rasuvaeff\Yii3Settings\Tests;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\SimpleCache\CacheInterface;
 use Rasuvaeff\Yii3Settings\CachedSettingsProvider;
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingType;
+use Yiisoft\Test\Support\SimpleCache\MemorySimpleCache;
 
 #[CoversClass(CachedSettingsProvider::class)]
 final class CachedSettingsProviderTest extends TestCase
 {
-    private const string DEFAULT_CACHE_KEY = 'yii3-settings:v1:mail.from';
+    private const string DEFAULT_CACHE_KEY = 'yii3-settings.v1.mail.from';
 
-    private FakeCache $cache;
+    private MemorySimpleCache $cache;
 
     private CachedSettingsProvider $provider;
 
     #[\Override]
     protected function setUp(): void
     {
-        $this->cache = new FakeCache();
+        $this->cache = new MemorySimpleCache();
         $inner = new FakeSettingsProvider(values: ['mail.from' => 'admin@example.com']);
 
         $this->provider = new CachedSettingsProvider(
@@ -53,9 +55,7 @@ final class CachedSettingsProviderTest extends TestCase
     #[Test]
     public function getReturnsValueFromInnerOnFirstCall(): void
     {
-        $value = $this->provider->get('mail.from');
-
-        $this->assertSame('admin@example.com', $value);
+        $this->assertSame('admin@example.com', $this->provider->get('mail.from'));
     }
 
     #[Test]
@@ -63,17 +63,15 @@ final class CachedSettingsProviderTest extends TestCase
     {
         $this->provider->get('mail.from');
 
-        $this->assertTrue($this->cache->has(self::DEFAULT_CACHE_KEY));
+        $this->assertSame('admin@example.com', $this->cache->get(self::DEFAULT_CACHE_KEY));
     }
 
     #[Test]
-    public function getReturnsCachedValueOnSecondCall(): void
+    public function returnsCachedValueInsteadOfInner(): void
     {
-        $this->provider->get('mail.from');
+        $this->cache->set(self::DEFAULT_CACHE_KEY, 'cached@example.com');
 
-        $cached = $this->cache->get(self::DEFAULT_CACHE_KEY);
-
-        $this->assertSame('admin@example.com', $cached);
+        $this->assertSame('cached@example.com', $this->provider->get('mail.from'));
     }
 
     #[Test]
@@ -94,78 +92,64 @@ final class CachedSettingsProviderTest extends TestCase
     }
 
     #[Test]
-    public function cachesValueWithConfiguredTtl(): void
+    public function usesConfiguredTtl(): void
     {
-        $this->provider->get('mail.from');
-
-        $this->assertSame(60, $this->cache->getLastTtl(self::DEFAULT_CACHE_KEY));
-    }
-
-    #[Test]
-    public function usesSpecificTtlValue(): void
-    {
-        $cache = new FakeCache();
-        $inner = new FakeSettingsProvider(values: ['test.key' => 'value']);
-        $provider = new CachedSettingsProvider(
-            inner: $inner,
-            cache: $cache,
-            definitions: [
-                'test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String),
-            ],
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn(null);
+        $cache->expects($this->once())->method('set')->with(
+            key: 'yii3-settings.v1.test.key',
+            value: 'value',
             ttl: 120,
         );
 
-        $provider->get('test.key');
-
-        $this->assertSame(120, $cache->getLastTtl('yii3-settings:v1:test.key'));
+        $this->providerWith($cache, ttl: 120)->get('test.key');
     }
 
     #[Test]
     public function usesDefaultTtlWhenNotProvided(): void
     {
-        $cache = new FakeCache();
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn(null);
+        $cache->expects($this->once())->method('set')->with(
+            key: 'yii3-settings.v1.test.key',
+            value: 'value',
+            ttl: 60,
+        );
+
         $inner = new FakeSettingsProvider(values: ['test.key' => 'value']);
         $provider = new CachedSettingsProvider(
             inner: $inner,
             cache: $cache,
-            definitions: [
-                'test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String),
-            ],
+            definitions: ['test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String)],
         );
 
         $provider->get('test.key');
-
-        $this->assertSame(60, $cache->getLastTtl('yii3-settings:v1:test.key'));
     }
 
     #[Test]
     public function supportsCustomCacheNamespaceAndVersion(): void
     {
-        $cache = new FakeCache();
+        $cache = new MemorySimpleCache();
         $inner = new FakeSettingsProvider(values: ['test.key' => 'value']);
         $provider = new CachedSettingsProvider(
             inner: $inner,
             cache: $cache,
-            definitions: [
-                'test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String),
-            ],
+            definitions: ['test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String)],
             cacheNamespace: 'app-settings',
             cacheVersion: 3,
         );
 
         $provider->get('test.key');
 
-        $this->assertTrue($cache->has('app-settings:v3:test.key'));
+        $this->assertTrue($cache->has('app-settings.v3.test.key'));
     }
 
     #[Test]
     public function getThrowsEarlyForUnknownSetting(): void
     {
-        $cache = new FakeCache();
-        $inner = new FakeSettingsProvider(values: ['unknown' => 'should-not-reach']);
         $provider = new CachedSettingsProvider(
-            inner: $inner,
-            cache: $cache,
+            inner: new FakeSettingsProvider(values: ['unknown' => 'should-not-reach']),
+            cache: new MemorySimpleCache(),
             definitions: [],
             ttl: 60,
         );
@@ -179,17 +163,23 @@ final class CachedSettingsProviderTest extends TestCase
     #[Test]
     public function fallsThroughToInnerWhenCacheGetThrows(): void
     {
-        $cache = new ThrowingCache();
-        $inner = new FakeSettingsProvider(values: ['test.key' => 'fallback']);
         $provider = new CachedSettingsProvider(
-            inner: $inner,
-            cache: $cache,
-            definitions: [
-                'test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String),
-            ],
+            inner: new FakeSettingsProvider(values: ['test.key' => 'fallback']),
+            cache: new ThrowingCache(),
+            definitions: ['test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String)],
             ttl: 60,
         );
 
         $this->assertSame('fallback', $provider->get('test.key'));
+    }
+
+    private function providerWith(CacheInterface $cache, int $ttl): CachedSettingsProvider
+    {
+        return new CachedSettingsProvider(
+            inner: new FakeSettingsProvider(values: ['test.key' => 'value']),
+            cache: $cache,
+            definitions: ['test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String)],
+            ttl: $ttl,
+        );
     }
 }
