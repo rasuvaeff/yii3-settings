@@ -61,8 +61,9 @@ make test
   PHP's native `(int)`, `(string)`, etc.
 - Env provider maps: `prefix + upper(key)`, dots → underscores.
 - Chain provider: first match wins. Order is significant.
-- Cache decorator: cache key = `<namespace>:v<version>:<key>` (default
-  `yii3-settings:v1:<key>`). Cache failures are silent.
+- Cache decorator: cache key = `<namespace>.v<version>.<key>` (default
+  `yii3-settings.v1.<key>`), dot-separated because PSR-16 reserves `{}()/\@:`.
+  Cache failures are silent.
 - Unknown setting in non-strict mode returns type default, not `null`.
 - Writable provider contract exists but no DB implementation in v1.
 - `secret=true` is allowed only for `SettingType::String` — enforced at construction.

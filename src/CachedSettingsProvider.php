@@ -84,6 +84,6 @@ final readonly class CachedSettingsProvider implements SettingsProvider
 
     private function cacheKey(string $key): string
     {
-        return sprintf('%s:v%d:%s', $this->cacheNamespace, $this->cacheVersion, $key);
+        return sprintf('%s.v%d.%s', $this->cacheNamespace, $this->cacheVersion, $key);
     }
 }
