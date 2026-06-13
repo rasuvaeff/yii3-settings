@@ -5,41 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 1.0.0 — 2026-06-13
 
-- `SettingsInspector` gains `describeAll(): list<SettingState>` for listing every
-  declared setting's state without enumerating keys by hand. **BC:** implementers
-  must add the method.
-- `SettingDefinition` gains optional presentation/policy metadata: `label`,
-  `group`, `help`, `choices`, `readonly` (constructor args and `fromConfig` keys).
-  They are inert for core providers except `readonly`, which writable providers
-  reject (`ReadonlySettingException`) and `describe()` reflects via
-  `SettingState::isWritable`.
-- Added `Exception\ReadonlySettingException`.
+Initial release.
 
-## 2.0.1 — 2026-06-10
-
-- `CachedSettingsProvider` cache key is now dot-separated
-  (`<namespace>.v<version>.<key>`, default `yii3-settings.v1.<key>`) instead of
-  colon-separated. PSR-16 reserves `{}()/\@:`, and strict PSR-16 caches (e.g.
-  `yiisoft/test-support`'s `MemorySimpleCache`) reject the old key. On upgrade the
-  previous cache entries are ignored once, then repopulated — no action required.
-- Tests use `yiisoft/test-support` doubles (`MemorySimpleCache`) instead of a
-  hand-rolled fake cache.
-
-## 1.0.0 — 2026-06-05
-
-- Initial release.
-
-## 2.0.0 — 2026-06-09
-
-- **BREAKING:** the package no longer binds `SettingsProvider` in its `di` config,
-  and the `Settings` facade is now built from the injected `SettingsProvider`.
-  The core only wires the `Settings` facade; the provider is supplied by exactly
-  one source — a storage backend (`yii3-settings-db`) or the application
-  (config-only). This removes the `Duplicate key "...\SettingsProvider"` and
-  `Duplicate key "...\Settings"` config errors that occurred when a backend was
-  installed alongside the core.
-- For config-array settings without a backend, bind `SettingsProvider` to
-  `ConfigSettingsProvider` in the application config (see README → "Provider
-  wiring").
+- Typed settings core: `SettingDefinition` (key, type, default, secret flag, and
+  optional presentation/policy metadata `label`/`group`/`help`/`choices`/`readonly`),
+  `SettingKey` (validated), `SettingValue` (typed normalization), `SettingType` enum.
+- Providers: `ConfigSettingsProvider`, `EnvSettingsProvider`, `ChainSettingsProvider`,
+  `CachedSettingsProvider` (PSR-16 decorator). `SettingsProvider` /
+  `WritableSettingsProvider` contracts.
+- `Settings` facade: `string()`, `int()`, `float()`, `bool()`, `array()`, `has()`.
+- `SettingsInspector` read-model: `describe()` and `describeAll()` returning
+  `SettingState` (key, effective value, source, stored-override, secret, writable).
+- Secret support: `Crypto\Cipher` interface (AEAD with associated data),
+  `DecryptionException`, `UnknownEncryptionKeyException`.
+- Exceptions: `InvalidSettingKeyException`, `SettingTypeMismatchException`,
+  `UnknownSettingException`, `ReadonlySettingException`.
