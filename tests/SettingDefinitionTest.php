@@ -238,6 +238,18 @@ final class SettingDefinitionTest extends TestCase
     }
 
     #[Test]
+    public function fromConfigDefaultsMetadataWhenOmitted(): void
+    {
+        $def = SettingDefinition::fromConfig('orders.status', ['type' => 'string']);
+
+        $this->assertNull($def->label);
+        $this->assertNull($def->group);
+        $this->assertNull($def->help);
+        $this->assertNull($def->choices);
+        $this->assertFalse($def->readonly);
+    }
+
+    #[Test]
     public function fromConfigReadsPresentationMetadata(): void
     {
         $def = SettingDefinition::fromConfig('orders.status', [
