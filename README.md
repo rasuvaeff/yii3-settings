@@ -153,7 +153,7 @@ $settings->int('billing.currency'); // throws
 | Class | Description |
 |---|---|
 | `Settings` | Facade: `string()`, `int()`, `float()`, `bool()`, `array()`, `has()` |
-| `SettingDefinition` | Typed setting definition with key, type, default, cast, secret flag |
+| `SettingDefinition` | Typed setting definition: key, type, default, cast, secret flag, and optional presentation/policy metadata (`label`, `group`, `help`, `choices`, `readonly`) |
 | `SettingKey` | Validated setting key value object |
 | `SettingValue` | Typed normalized setting value |
 | `SettingType` | Enum: `string`, `int`, `float`, `bool`, `array` |
@@ -185,6 +185,40 @@ From config:
 'billing.stripe_key' => ['type' => 'string', 'secret' => true],
 ```
 
+### Presentation & policy metadata
+
+A definition can carry optional UI/policy hints used by admin tooling (e.g.
+`rasuvaeff/yii3-settings-ui`). They are inert for the core providers, except
+`readonly`, which writable providers reject and `describe()` reflects via
+`SettingState::isWritable`.
+
+```php
+$def = new SettingDefinition(
+    key: 'orders.status',
+    type: SettingType::String,
+    default: 'new',
+    label: 'Default order status',
+    group: 'Orders',
+    help: 'Status assigned to freshly created orders',
+    choices: ['new', 'paid', 'shipped'],
+    readonly: false,
+);
+```
+
+From config:
+
+```php
+'orders.status' => [
+    'type' => 'string',
+    'default' => 'new',
+    'label' => 'Default order status',
+    'group' => 'Orders',
+    'help' => 'Status assigned to freshly created orders',
+    'choices' => ['new', 'paid', 'shipped'],
+    'readonly' => false,
+],
+```
+
 | Rule | Detail |
 |---|---|
 | `secret=true` | Only allowed for `SettingType::String` |
@@ -211,7 +245,9 @@ $state->effectiveValue;    // 'USD' (or null for masked secrets)
 $state->hasStoredOverride; // true
 $state->source;            // 'db', 'config', or 'default'
 $state->isSecret;          // false
-$state->isWritable;        // true
+$state->isWritable;        // true (false for readonly definitions)
+
+$states = $inspector->describeAll(); // list<SettingState> for every declared key
 ```
 
 ## Security

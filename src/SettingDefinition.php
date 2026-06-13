@@ -19,11 +19,19 @@ final readonly class SettingDefinition
 
     public ?SettingValue $defaultValue;
 
+    /**
+     * @param list<string>|null $choices Allowed values for presentation/selection (optional).
+     */
     public function __construct(
         SettingKey|string $key,
         SettingType $type,
         mixed $default = null,
         public bool $secret = false,
+        public ?string $label = null,
+        public ?string $group = null,
+        public ?string $help = null,
+        public ?array $choices = null,
+        public bool $readonly = false,
     ) {
         if ($secret && $type !== SettingType::String) {
             throw new \InvalidArgumentException('Secret flag is only supported for string type settings');
@@ -37,7 +45,7 @@ final readonly class SettingDefinition
     }
 
     /**
-     * @param array{type: string, default?: mixed, secret?: bool} $config
+     * @param array{type: string, default?: mixed, secret?: bool, label?: string, group?: string, help?: string, choices?: list<string>, readonly?: bool} $config
      */
     public static function fromConfig(string $key, array $config): self
     {
@@ -46,6 +54,11 @@ final readonly class SettingDefinition
             type: SettingType::from($config['type']),
             default: $config['default'] ?? null,
             secret: $config['secret'] ?? false,
+            label: $config['label'] ?? null,
+            group: $config['group'] ?? null,
+            help: $config['help'] ?? null,
+            choices: $config['choices'] ?? null,
+            readonly: $config['readonly'] ?? false,
         );
     }
 

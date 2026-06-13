@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+- `SettingsInspector` gains `describeAll(): list<SettingState>` for listing every
+  declared setting's state without enumerating keys by hand. **BC:** implementers
+  must add the method.
+- `SettingDefinition` gains optional presentation/policy metadata: `label`,
+  `group`, `help`, `choices`, `readonly` (constructor args and `fromConfig` keys).
+  They are inert for core providers except `readonly`, which writable providers
+  reject (`ReadonlySettingException`) and `describe()` reflects via
+  `SettingState::isWritable`.
+- Added `Exception\ReadonlySettingException`.
+
 ## 2.0.1 — 2026-06-10
 
 - `CachedSettingsProvider` cache key is now dot-separated
