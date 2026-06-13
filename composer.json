@@ -57,8 +57,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-feature/encryption-and-inspector": "1.1.x-dev",
-            "dev-main": "1.1.x-dev"
+            "dev-master": "1.0.x-dev"
         },
         "config-plugin": {
             "di": "di.php",

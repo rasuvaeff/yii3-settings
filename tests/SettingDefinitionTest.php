@@ -204,4 +204,55 @@ final class SettingDefinitionTest extends TestCase
 
         $this->assertFalse($def->isSecret());
     }
+
+    #[Test]
+    public function metadataDefaultsToNull(): void
+    {
+        $def = new SettingDefinition(key: 'test', type: SettingType::String);
+
+        $this->assertNull($def->label);
+        $this->assertNull($def->group);
+        $this->assertNull($def->help);
+        $this->assertNull($def->choices);
+        $this->assertFalse($def->readonly);
+    }
+
+    #[Test]
+    public function acceptsPresentationMetadata(): void
+    {
+        $def = new SettingDefinition(
+            key: 'orders.status',
+            type: SettingType::String,
+            label: 'Order status',
+            group: 'Orders',
+            help: 'Default status for new orders',
+            choices: ['new', 'paid'],
+            readonly: true,
+        );
+
+        $this->assertSame('Order status', $def->label);
+        $this->assertSame('Orders', $def->group);
+        $this->assertSame('Default status for new orders', $def->help);
+        $this->assertSame(['new', 'paid'], $def->choices);
+        $this->assertTrue($def->readonly);
+    }
+
+    #[Test]
+    public function fromConfigReadsPresentationMetadata(): void
+    {
+        $def = SettingDefinition::fromConfig('orders.status', [
+            'type' => 'string',
+            'label' => 'Order status',
+            'group' => 'Orders',
+            'help' => 'Default status for new orders',
+            'choices' => ['new', 'paid'],
+            'readonly' => true,
+        ]);
+
+        $this->assertSame('Order status', $def->label);
+        $this->assertSame('Orders', $def->group);
+        $this->assertSame('Default status for new orders', $def->help);
+        $this->assertSame(['new', 'paid'], $def->choices);
+        $this->assertTrue($def->readonly);
+    }
 }
