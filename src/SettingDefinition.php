@@ -69,7 +69,7 @@ final readonly class SettingDefinition
 
     public function hasDefault(): bool
     {
-        return $this->defaultValue !== null;
+        return $this->defaultValue instanceof \Rasuvaeff\Yii3Settings\SettingValue;
     }
 
     public function isSecret(): bool

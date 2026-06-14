@@ -9,7 +9,7 @@ use Rasuvaeff\Yii3Settings\Exception\InvalidSettingKeyException;
 /**
  * @api
  */
-final readonly class SettingKey
+final readonly class SettingKey implements \Stringable
 {
     private const string KEY_PATTERN = '/^[a-z][a-z0-9_.-]*$/';
 
@@ -28,6 +28,7 @@ final readonly class SettingKey
         return $this->value;
     }
 
+    #[\Override]
     public function __toString(): string
     {
         return $this->value;
