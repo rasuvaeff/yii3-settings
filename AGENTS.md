@@ -63,7 +63,9 @@ make test
 - Chain provider: first match wins. Order is significant.
 - Cache decorator: cache key = `<namespace>.v<version>.<key>` (default
   `yii3-settings.v1.<key>`), dot-separated because PSR-16 reserves `{}()/\@:`.
-  Cache failures are silent.
+  Cache failures are silent. Since 1.1.0 the decorator is write-through: when
+  `inner` implements `WritableSettingsProvider`, `set()`/`remove()` delegate and
+  clear the key's cache; read-only inner → `\LogicException` on write.
 - Unknown setting in non-strict mode returns type default, not `null`.
 - Writable provider contract exists but no DB implementation in v1.
 - `secret=true` is allowed only for `SettingType::String` — enforced at construction.

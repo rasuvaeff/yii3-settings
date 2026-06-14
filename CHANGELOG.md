@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.0 — 2026-06-14
+
+- `CachedSettingsProvider` is now write-through: it implements
+  `WritableSettingsProvider`. `set()`/`remove()` delegate to the inner provider
+  and invalidate the cached entry for the key, so reads never observe a stale
+  value after a write. The constructor is unchanged; when the inner provider is
+  read-only, `set()`/`remove()` throw a `\LogicException`. Backward-compatible,
+  additive change.
+
 ## 1.0.0 — 2026-06-13
 
 Initial release.
