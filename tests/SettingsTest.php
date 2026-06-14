@@ -244,7 +244,7 @@ final class SettingsTest extends TestCase
         $settings = new Settings(
             provider: $provider,
             definitions: [
-                'app.name' => new SettingDefinition(key: 'app.name', type: SettingType::String, default: null),
+                'app.name' => new SettingDefinition(key: 'app.name', type: SettingType::String),
             ],
         );
 

@@ -173,6 +173,82 @@ final class CachedSettingsProviderTest extends TestCase
         $this->assertSame('fallback', $provider->get('test.key'));
     }
 
+    #[Test]
+    public function setDelegatesToInnerAndInvalidatesCache(): void
+    {
+        $cache = new MemorySimpleCache();
+        $inner = new FakeWritableSettingsProvider(values: ['mail.from' => 'old@example.com']);
+        $provider = new CachedSettingsProvider(
+            inner: $inner,
+            cache: $cache,
+            definitions: ['mail.from' => new SettingDefinition(key: 'mail.from', type: SettingType::String)],
+            ttl: 60,
+        );
+
+        // Warm the cache with the old value.
+        $this->assertSame('old@example.com', $provider->get('mail.from'));
+        $this->assertTrue($cache->has(self::DEFAULT_CACHE_KEY));
+
+        $provider->set('mail.from', 'new@example.com');
+
+        // Cache entry is invalidated and the inner provider holds the new value.
+        $this->assertFalse($cache->has(self::DEFAULT_CACHE_KEY));
+        $this->assertSame('new@example.com', $inner->values()['mail.from']);
+        $this->assertSame('new@example.com', $provider->get('mail.from'));
+    }
+
+    #[Test]
+    public function removeDelegatesToInnerAndInvalidatesCache(): void
+    {
+        $cache = new MemorySimpleCache();
+        $inner = new FakeWritableSettingsProvider(values: ['mail.from' => 'old@example.com']);
+        $provider = new CachedSettingsProvider(
+            inner: $inner,
+            cache: $cache,
+            definitions: ['mail.from' => new SettingDefinition(key: 'mail.from', type: SettingType::String)],
+            ttl: 60,
+        );
+
+        $provider->get('mail.from');
+        $this->assertTrue($cache->has(self::DEFAULT_CACHE_KEY));
+
+        $provider->remove('mail.from');
+
+        $this->assertFalse($cache->has(self::DEFAULT_CACHE_KEY));
+        $this->assertFalse($inner->has('mail.from'));
+    }
+
+    #[Test]
+    public function setThrowsWhenInnerIsReadOnly(): void
+    {
+        $provider = new CachedSettingsProvider(
+            inner: new FakeSettingsProvider(values: ['mail.from' => 'admin@example.com']),
+            cache: new MemorySimpleCache(),
+            definitions: ['mail.from' => new SettingDefinition(key: 'mail.from', type: SettingType::String)],
+            ttl: 60,
+        );
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('inner provider is read-only');
+
+        $provider->set('mail.from', 'new@example.com');
+    }
+
+    #[Test]
+    public function removeThrowsWhenInnerIsReadOnly(): void
+    {
+        $provider = new CachedSettingsProvider(
+            inner: new FakeSettingsProvider(values: ['mail.from' => 'admin@example.com']),
+            cache: new MemorySimpleCache(),
+            definitions: ['mail.from' => new SettingDefinition(key: 'mail.from', type: SettingType::String)],
+            ttl: 60,
+        );
+
+        $this->expectException(\LogicException::class);
+
+        $provider->remove('mail.from');
+    }
+
     private function providerWith(CacheInterface $cache, int $ttl): CachedSettingsProvider
     {
         return new CachedSettingsProvider(

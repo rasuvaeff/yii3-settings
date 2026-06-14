@@ -103,7 +103,7 @@ reintroduces the `Duplicate key` conflict.
 | `ConfigSettingsProvider` | Reads from PHP config arrays |
 | `EnvSettingsProvider` | Reads from environment variables |
 | `ChainSettingsProvider` | Chains multiple providers (first match wins) |
-| `CachedSettingsProvider` | PSR-16 cache decorator |
+| `CachedSettingsProvider` | PSR-16 cache decorator (write-through since 1.1.0) |
 
 ### Chain providers
 
@@ -116,9 +116,16 @@ $chain = new ChainSettingsProvider(providers: [
 
 ### Cache decorator
 
+`CachedSettingsProvider` is a PSR-16 read cache. Since 1.1.0 it is also
+**write-through**: when the inner provider implements `WritableSettingsProvider`,
+`set()`/`remove()` delegate to it and invalidate the cached entry for the key —
+so reads never observe a stale value after a write. Bind it as the single
+`WritableSettingsProvider`/`SettingsProvider` and the cache stays coherent
+automatically.
+
 ```php
 $cached = new CachedSettingsProvider(
-    inner: $chain,
+    inner: $writableProvider, // write-through: writes delegate + clear the cache key
     cache: $psr16Cache,
     definitions: $definitions,
     ttl: 60,
@@ -164,7 +171,7 @@ $settings->int('billing.currency'); // throws
 | `ConfigSettingsProvider` | Provider from config arrays |
 | `EnvSettingsProvider` | Provider from environment variables |
 | `ChainSettingsProvider` | Provider chain (first match wins) |
-| `CachedSettingsProvider` | PSR-16 cache decorator |
+| `CachedSettingsProvider` | PSR-16 cache decorator (write-through since 1.1.0) |
 | `Cipher` | Encryption interface (AEAD with associated data) |
 | `DecryptionException` | Decryption failure (tampered data) |
 | `UnknownEncryptionKeyException` | Key ID in envelope not found in KeyRing |

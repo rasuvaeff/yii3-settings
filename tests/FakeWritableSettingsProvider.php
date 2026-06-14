@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Rasuvaeff\Yii3Settings\Tests;
 
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
-use Rasuvaeff\Yii3Settings\SettingsProvider;
+use Rasuvaeff\Yii3Settings\WritableSettingsProvider;
 
 /**
  * @internal
  */
-final readonly class FakeSettingsProvider implements SettingsProvider
+final class FakeWritableSettingsProvider implements WritableSettingsProvider
 {
     /**
      * @param array<string, mixed> $values
@@ -35,5 +35,25 @@ final readonly class FakeSettingsProvider implements SettingsProvider
         }
 
         return $this->values[$key];
+    }
+
+    #[\Override]
+    public function set(string $key, mixed $value): void
+    {
+        $this->values[$key] = $value;
+    }
+
+    #[\Override]
+    public function remove(string $key): void
+    {
+        unset($this->values[$key]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function values(): array
+    {
+        return $this->values;
     }
 }

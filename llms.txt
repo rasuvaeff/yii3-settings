@@ -114,11 +114,18 @@ $chain->get('key'); // returns from first match
 
 ### CachedSettingsProvider
 
+PSR-16 cache decorator. Since 1.1.0 it implements `WritableSettingsProvider`
+(write-through): when `inner` is writable, `set()`/`remove()` delegate to it and
+invalidate the cached key.
+
 ```php
-$cached = new CachedSettingsProvider(inner: $provider, cache: $psr16, definitions: [...], ttl: 60);
-$cached->get('key');  // fetches from inner, caches result
-$cached->clear('key'); // invalidates cache
+$cached = new CachedSettingsProvider(inner: $writableProvider, cache: $psr16, definitions: [...], ttl: 60);
+$cached->get('key');    // fetches from inner, caches result
+$cached->set('key', $value);   // delegates to inner + clears cache for the key
+$cached->remove('key');        // delegates to inner + clears cache for the key
+$cached->clear('key');  // invalidates cache only
 ```
+If `inner` is read-only, `set()`/`remove()` throw `\LogicException`.
 
 ### WritableSettingsProvider
 

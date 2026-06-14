@@ -10,10 +10,8 @@ use Psr\SimpleCache\InvalidArgumentException;
 /**
  * @api
  */
-final readonly class CachedSettingsProvider implements SettingsProvider
+final readonly class CachedSettingsProvider implements WritableSettingsProvider
 {
-    private int $ttl;
-
     /**
      * @var array<string, SettingDefinition>
      */
@@ -26,12 +24,11 @@ final readonly class CachedSettingsProvider implements SettingsProvider
         private SettingsProvider $inner,
         private CacheInterface $cache,
         array $definitions = [],
-        int $ttl = 60,
+        private int $ttl = 60,
         private string $cacheNamespace = 'yii3-settings',
         private int $cacheVersion = 1,
     ) {
         $this->definitions = ConfigSettingsProvider::normalizeDefinitions($definitions);
-        $this->ttl = $ttl;
     }
 
     #[\Override]
@@ -61,7 +58,6 @@ final readonly class CachedSettingsProvider implements SettingsProvider
             // Fall through to inner provider.
         }
 
-        /** @var mixed $value */
         $value = $this->inner->get($key);
 
         try {
@@ -80,6 +76,40 @@ final readonly class CachedSettingsProvider implements SettingsProvider
         } catch (InvalidArgumentException) {
             // Cache delete failure is non-critical.
         }
+    }
+
+    /**
+     * Persists the value through the inner writable provider and invalidates the
+     * cached entry so the next read observes the new value. The cache is cleared
+     * only after a successful write.
+     */
+    #[\Override]
+    public function set(string $key, mixed $value): void
+    {
+        $this->writableInner()->set(key: $key, value: $value);
+        $this->clear($key);
+    }
+
+    /**
+     * Removes the stored override through the inner writable provider and
+     * invalidates the cached entry.
+     */
+    #[\Override]
+    public function remove(string $key): void
+    {
+        $this->writableInner()->remove(key: $key);
+        $this->clear($key);
+    }
+
+    private function writableInner(): WritableSettingsProvider
+    {
+        if (!$this->inner instanceof WritableSettingsProvider) {
+            throw new \LogicException(
+                'CachedSettingsProvider cannot delegate writes: the inner provider is read-only.',
+            );
+        }
+
+        return $this->inner;
     }
 
     private function cacheKey(string $key): string
