@@ -4,29 +4,26 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Rasuvaeff\Yii3Settings\SettingValue;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Data\DataProvider;
+use Testo\Test;
 
-#[CoversClass(SettingValue::class)]
-final class SettingValueTest extends TestCase
+#[Test]
+#[Covers(SettingValue::class)]
+final class SettingValueTest
 {
-    #[Test]
     #[DataProvider('normalizationProvider')]
     public function normalizesValueByType(SettingType $type, mixed $value, mixed $expected): void
     {
         $normalized = SettingValue::fromRaw(type: $type, value: $value);
 
-        $this->assertSame($type, $normalized->type);
-        $this->assertSame($expected, $normalized->raw());
+        Assert::same($normalized->type, $type);
+        Assert::same($normalized->raw(), $expected);
     }
 
-    /**
-     * @return iterable<string, array{SettingType, mixed, mixed}>
-     */
     public static function normalizationProvider(): iterable
     {
         yield 'string kept as string' => [SettingType::String, 'USD', 'USD'];

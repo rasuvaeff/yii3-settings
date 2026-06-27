@@ -4,67 +4,60 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
-use Rasuvaeff\Yii3Settings\Exception\InvalidSettingKeyException;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingKey;
 use Rasuvaeff\Yii3Settings\SettingType;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Data\DataProvider;
+use Testo\Expect;
+use Testo\Test;
 
-#[CoversClass(SettingDefinition::class)]
-final class SettingDefinitionTest extends TestCase
+#[Test]
+#[Covers(SettingDefinition::class)]
+final class SettingDefinitionTest
 {
-    #[Test]
     public function createsWithKeyAndType(): void
     {
         $def = new SettingDefinition(key: 'mail.from', type: SettingType::String, default: 'noreply@example.com');
 
-        $this->assertSame('mail.from', $def->key);
-        $this->assertSame(SettingType::String, $def->type);
-        $this->assertSame('noreply@example.com', $def->default);
+        Assert::same($def->key, 'mail.from');
+        Assert::same($def->type, SettingType::String);
+        Assert::same($def->default, 'noreply@example.com');
     }
 
-    #[Test]
     public function acceptsSettingKeyInstance(): void
     {
         $def = new SettingDefinition(key: new SettingKey('mail.from'), type: SettingType::String);
 
-        $this->assertSame('mail.from', $def->key);
-        $this->assertSame('mail.from', $def->settingKey->toString());
+        Assert::same($def->key, 'mail.from');
+        Assert::same($def->settingKey->toString(), 'mail.from');
     }
 
-    #[Test]
     public function buildsFromArrayConfig(): void
     {
         $def = SettingDefinition::fromConfig('orders.max_items', ['type' => 'int', 'default' => 100]);
 
-        $this->assertSame('orders.max_items', $def->key);
-        $this->assertSame(SettingType::Int, $def->type);
-        $this->assertSame(100, $def->default);
+        Assert::same($def->key, 'orders.max_items');
+        Assert::same($def->type, SettingType::Int);
+        Assert::same($def->default, 100);
     }
 
-    #[Test]
     public function createsWithoutDefault(): void
     {
         $def = new SettingDefinition(key: 'billing.currency', type: SettingType::String);
 
-        $this->assertNull($def->default);
-        $this->assertFalse($def->hasDefault());
+        Assert::null($def->default);
+        Assert::false($def->hasDefault());
     }
 
-    #[Test]
     public function hasDefaultReturnsTrueWhenSet(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::String, default: 'value');
 
-        $this->assertTrue($def->hasDefault());
+        Assert::true($def->hasDefault());
     }
 
-    /**
-     * @return array<string, array{string}>
-     */
     public static function invalidKeyProvider(): array
     {
         return [
@@ -77,92 +70,81 @@ final class SettingDefinitionTest extends TestCase
     }
 
     #[DataProvider('invalidKeyProvider')]
-    #[Test]
     public function throwsOnInvalidKey(string $key): void
     {
-        $this->expectException(InvalidSettingKeyException::class);
+        Expect::exception(\Rasuvaeff\Yii3Settings\Exception\InvalidSettingKeyException::class);
 
         new SettingDefinition(key: $key, type: SettingType::String);
     }
 
-    #[Test]
     public function castsStringToString(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::String);
 
-        $this->assertSame('123', $def->cast(123));
+        Assert::same($def->cast(123), '123');
     }
 
-    #[Test]
     public function castsIntToInt(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::Int);
 
-        $this->assertSame(42, $def->cast('42'));
+        Assert::same($def->cast('42'), 42);
     }
 
-    #[Test]
     public function castsFloatToFloat(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::Float);
 
-        $this->assertSame(3.14, $def->cast('3.14'));
+        Assert::same($def->cast('3.14'), 3.14);
     }
 
-    #[Test]
     public function castsBoolToBool(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::Bool);
 
-        $this->assertTrue($def->cast(1));
-        $this->assertFalse($def->cast(0));
+        Assert::true($def->cast(1));
+        Assert::false($def->cast(0));
     }
 
-    #[Test]
     public function castsArrayToArray(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::Array);
 
-        $this->assertSame(['a', 'b'], $def->cast(['a', 'b']));
-        $this->assertSame([], $def->cast(null));
+        Assert::same($def->cast(['a', 'b']), ['a', 'b']);
+        Assert::same($def->cast(null), []);
     }
 
-    #[Test]
     public function castPreservesExactType(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::Int);
 
-        $this->assertSame(42, $def->cast(42));
+        Assert::same($def->cast(42), 42);
     }
 
-    #[Test]
     public function secretDefaultsToFalse(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::String);
 
-        $this->assertFalse($def->isSecret());
+        Assert::false($def->isSecret());
     }
 
-    #[Test]
     public function secretFlagEnabled(): void
     {
         $def = new SettingDefinition(key: 'billing.stripe_key', type: SettingType::String, secret: true);
 
-        $this->assertTrue($def->isSecret());
+        Assert::true($def->isSecret());
     }
 
-    #[Test]
     public function throwsOnSecretWithNonStringType(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Secret flag is only supported for string type settings');
-
-        new SettingDefinition(key: 'test', type: SettingType::Int, secret: true);
+        try {
+            new SettingDefinition(key: 'test', type: SettingType::Int, secret: true);
+            Assert::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $e) {
+            Assert::string($e->getMessage())->contains('Secret flag is only supported for string type settings');
+        }
     }
 
-    /**
-     * @return array<string, array{SettingType}>
-     */
     public static function nonStringTypeProvider(): array
     {
         return [
@@ -174,15 +156,13 @@ final class SettingDefinitionTest extends TestCase
     }
 
     #[DataProvider('nonStringTypeProvider')]
-    #[Test]
     public function throwsOnSecretWithAnyNonStringType(SettingType $type): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        Expect::exception(\InvalidArgumentException::class);
 
         new SettingDefinition(key: 'test', type: $type, secret: true);
     }
 
-    #[Test]
     public function fromConfigWithSecretFlag(): void
     {
         $def = SettingDefinition::fromConfig('billing.stripe_key', [
@@ -190,11 +170,10 @@ final class SettingDefinitionTest extends TestCase
             'secret' => true,
         ]);
 
-        $this->assertTrue($def->isSecret());
-        $this->assertSame(SettingType::String, $def->type);
+        Assert::true($def->isSecret());
+        Assert::same($def->type, SettingType::String);
     }
 
-    #[Test]
     public function fromConfigWithoutSecretFlag(): void
     {
         $def = SettingDefinition::fromConfig('mail.from', [
@@ -202,22 +181,20 @@ final class SettingDefinitionTest extends TestCase
             'default' => 'noreply@example.com',
         ]);
 
-        $this->assertFalse($def->isSecret());
+        Assert::false($def->isSecret());
     }
 
-    #[Test]
     public function metadataDefaultsToNull(): void
     {
         $def = new SettingDefinition(key: 'test', type: SettingType::String);
 
-        $this->assertNull($def->label);
-        $this->assertNull($def->group);
-        $this->assertNull($def->help);
-        $this->assertNull($def->choices);
-        $this->assertFalse($def->readonly);
+        Assert::null($def->label);
+        Assert::null($def->group);
+        Assert::null($def->help);
+        Assert::null($def->choices);
+        Assert::false($def->readonly);
     }
 
-    #[Test]
     public function acceptsPresentationMetadata(): void
     {
         $def = new SettingDefinition(
@@ -230,26 +207,24 @@ final class SettingDefinitionTest extends TestCase
             readonly: true,
         );
 
-        $this->assertSame('Order status', $def->label);
-        $this->assertSame('Orders', $def->group);
-        $this->assertSame('Default status for new orders', $def->help);
-        $this->assertSame(['new', 'paid'], $def->choices);
-        $this->assertTrue($def->readonly);
+        Assert::same($def->label, 'Order status');
+        Assert::same($def->group, 'Orders');
+        Assert::same($def->help, 'Default status for new orders');
+        Assert::same($def->choices, ['new', 'paid']);
+        Assert::true($def->readonly);
     }
 
-    #[Test]
     public function fromConfigDefaultsMetadataWhenOmitted(): void
     {
         $def = SettingDefinition::fromConfig('orders.status', ['type' => 'string']);
 
-        $this->assertNull($def->label);
-        $this->assertNull($def->group);
-        $this->assertNull($def->help);
-        $this->assertNull($def->choices);
-        $this->assertFalse($def->readonly);
+        Assert::null($def->label);
+        Assert::null($def->group);
+        Assert::null($def->help);
+        Assert::null($def->choices);
+        Assert::false($def->readonly);
     }
 
-    #[Test]
     public function fromConfigReadsPresentationMetadata(): void
     {
         $def = SettingDefinition::fromConfig('orders.status', [
@@ -261,10 +236,10 @@ final class SettingDefinitionTest extends TestCase
             'readonly' => true,
         ]);
 
-        $this->assertSame('Order status', $def->label);
-        $this->assertSame('Orders', $def->group);
-        $this->assertSame('Default status for new orders', $def->help);
-        $this->assertSame(['new', 'paid'], $def->choices);
-        $this->assertTrue($def->readonly);
+        Assert::same($def->label, 'Order status');
+        Assert::same($def->group, 'Orders');
+        Assert::same($def->help, 'Default status for new orders');
+        Assert::same($def->choices, ['new', 'paid']);
+        Assert::true($def->readonly);
     }
 }

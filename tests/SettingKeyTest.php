@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\Exception\InvalidSettingKeyException;
 use Rasuvaeff\Yii3Settings\SettingKey;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Expect;
+use Testo\Test;
 
-#[CoversClass(SettingKey::class)]
-final class SettingKeyTest extends TestCase
+#[Test]
+#[Covers(SettingKey::class)]
+final class SettingKeyTest
 {
-    #[Test]
     public function acceptsValidKey(): void
     {
         $key = new SettingKey('mail.from');
 
-        $this->assertSame('mail.from', $key->toString());
-        $this->assertSame('mail.from', (string) $key);
+        Assert::same($key->toString(), 'mail.from');
+        Assert::same((string) $key, 'mail.from');
     }
 
-    #[Test]
     public function rejectsInvalidKey(): void
     {
-        $this->expectException(InvalidSettingKeyException::class);
+        Expect::exception(InvalidSettingKeyException::class);
 
         new SettingKey('Invalid Key');
     }
