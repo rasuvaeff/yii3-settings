@@ -7,10 +7,13 @@
         "text": "php://stderr",
         "summary": "build/infection-summary.log"
     },
-    "phpUnit": {
-        "configDir": "."
-    },
-    "minMsi": 100,
+    "testFramework": "testo",
+    // 1 equivalent mutant: Settings::resolve() LogicalAnd (&& → ||). When the
+    // definition exists but its default is null, the mutant returns null instead
+    // of the type default — but every typed accessor casts the result
+    // ((string)null === '', (int)null === 0, etc.), so the difference is
+    // unobservable through the public API.
+    "minMsi": 99,
     "mutators": {
         "@default": true
     }

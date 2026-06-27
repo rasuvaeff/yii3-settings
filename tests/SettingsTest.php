@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\ConfigSettingsProvider;
 use Rasuvaeff\Yii3Settings\Exception\SettingTypeMismatchException;
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
@@ -14,14 +11,20 @@ use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingKey;
 use Rasuvaeff\Yii3Settings\Settings;
 use Rasuvaeff\Yii3Settings\SettingType;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Expect;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 
-#[CoversClass(Settings::class)]
-final class SettingsTest extends TestCase
+#[Test]
+#[Covers(Settings::class)]
+final class SettingsTest
 {
     private Settings $settings;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $provider = new ConfigSettingsProvider(
             definitions: [
@@ -43,59 +46,50 @@ final class SettingsTest extends TestCase
         );
     }
 
-    #[Test]
     public function stringReturnsStringValue(): void
     {
-        $this->assertSame('admin@example.com', $this->settings->string('mail.from'));
+        Assert::same($this->settings->string('mail.from'), 'admin@example.com');
     }
 
-    #[Test]
     public function intReturnsIntValue(): void
     {
-        $this->assertSame(50, $this->settings->int('orders.max_items'));
+        Assert::same($this->settings->int('orders.max_items'), 50);
     }
 
-    #[Test]
     public function floatReturnsFloatValue(): void
     {
-        $this->assertSame(0.0, $this->settings->float('billing.rate'));
+        Assert::same($this->settings->float('billing.rate'), 0.0);
     }
 
-    #[Test]
     public function boolReturnsBoolValue(): void
     {
-        $this->assertTrue($this->settings->bool('mail.enabled'));
+        Assert::true($this->settings->bool('mail.enabled'));
     }
 
-    #[Test]
     public function arrayReturnsArrayValue(): void
     {
-        $this->assertSame([], $this->settings->array('app.features'));
+        Assert::same($this->settings->array('app.features'), []);
     }
 
-    #[Test]
     public function acceptsSettingKeyObjects(): void
     {
-        $this->assertSame('admin@example.com', $this->settings->string(new SettingKey('mail.from')));
+        Assert::same($this->settings->string(new SettingKey('mail.from')), 'admin@example.com');
     }
 
-    #[Test]
     public function returnsDefaultForMissingValue(): void
     {
-        $this->assertSame(0.0, $this->settings->float('billing.rate'));
+        Assert::same($this->settings->float('billing.rate'), 0.0);
     }
 
-    #[Test]
     public function returnsTypeDefaultForUnknownInNonStrictMode(): void
     {
-        $this->assertSame('', $this->settings->string('unknown'));
-        $this->assertSame(0, $this->settings->int('unknown'));
-        $this->assertSame(0.0, $this->settings->float('unknown'));
-        $this->assertFalse($this->settings->bool('unknown'));
-        $this->assertSame([], $this->settings->array('unknown'));
+        Assert::same($this->settings->string('unknown'), '');
+        Assert::same($this->settings->int('unknown'), 0);
+        Assert::same($this->settings->float('unknown'), 0.0);
+        Assert::false($this->settings->bool('unknown'));
+        Assert::same($this->settings->array('unknown'), []);
     }
 
-    #[Test]
     public function throwsForUnknownInStrictMode(): void
     {
         $settings = new Settings(
@@ -104,64 +98,56 @@ final class SettingsTest extends TestCase
             strictMode: true,
         );
 
-        $this->expectException(UnknownSettingException::class);
+        Expect::exception(UnknownSettingException::class);
 
         $settings->string('unknown');
     }
 
-    #[Test]
     public function hasReturnsTrueForExistingSetting(): void
     {
-        $this->assertTrue($this->settings->has('mail.from'));
+        Assert::true($this->settings->has('mail.from'));
     }
 
-    #[Test]
     public function hasReturnsFalseForUnknownSetting(): void
     {
-        $this->assertFalse($this->settings->has('unknown'));
+        Assert::false($this->settings->has('unknown'));
     }
 
-    #[Test]
     public function stringThrowsOnTypeMismatch(): void
     {
-        $this->expectException(SettingTypeMismatchException::class);
+        Expect::exception(SettingTypeMismatchException::class);
 
         $this->settings->string('orders.max_items');
     }
 
-    #[Test]
     public function intThrowsOnTypeMismatch(): void
     {
-        $this->expectException(SettingTypeMismatchException::class);
+        Expect::exception(SettingTypeMismatchException::class);
 
         $this->settings->int('mail.from');
     }
 
-    #[Test]
     public function floatThrowsOnTypeMismatch(): void
     {
-        $this->expectException(SettingTypeMismatchException::class);
+        Expect::exception(SettingTypeMismatchException::class);
 
         $this->settings->float('mail.from');
     }
 
-    #[Test]
     public function boolThrowsOnTypeMismatch(): void
     {
-        $this->expectException(SettingTypeMismatchException::class);
+        Expect::exception(SettingTypeMismatchException::class);
 
         $this->settings->bool('mail.from');
     }
 
-    #[Test]
     public function arrayThrowsOnTypeMismatch(): void
     {
-        $this->expectException(SettingTypeMismatchException::class);
+        Expect::exception(SettingTypeMismatchException::class);
 
         $this->settings->array('mail.from');
     }
 
-    #[Test]
     public function stringReturnsCastResultFromProvider(): void
     {
         $provider = new FakeSettingsProvider(values: ['test.key' => 42]);
@@ -173,10 +159,9 @@ final class SettingsTest extends TestCase
             ],
         );
 
-        $this->assertSame('42', $settings->string('test.key'));
+        Assert::same($settings->string('test.key'), '42');
     }
 
-    #[Test]
     public function intReturnsCastResultFromProvider(): void
     {
         $provider = new FakeSettingsProvider(values: ['test.key' => '123']);
@@ -188,10 +173,9 @@ final class SettingsTest extends TestCase
             ],
         );
 
-        $this->assertSame(123, $settings->int('test.key'));
+        Assert::same($settings->int('test.key'), 123);
     }
 
-    #[Test]
     public function floatReturnsCastResultFromProvider(): void
     {
         $provider = new FakeSettingsProvider(values: ['test.key' => '3.14']);
@@ -203,10 +187,9 @@ final class SettingsTest extends TestCase
             ],
         );
 
-        $this->assertSame(3.14, $settings->float('test.key'));
+        Assert::same($settings->float('test.key'), 3.14);
     }
 
-    #[Test]
     public function boolReturnsCastResultFromProvider(): void
     {
         $provider = new FakeSettingsProvider(values: ['test.key' => 1]);
@@ -218,10 +201,9 @@ final class SettingsTest extends TestCase
             ],
         );
 
-        $this->assertTrue($settings->bool('test.key'));
+        Assert::true($settings->bool('test.key'));
     }
 
-    #[Test]
     public function arrayReturnsCastResultFromProvider(): void
     {
         $provider = new FakeSettingsProvider(values: ['test.key' => 'not-array']);
@@ -233,10 +215,9 @@ final class SettingsTest extends TestCase
             ],
         );
 
-        $this->assertSame(['not-array'], $settings->array('test.key'));
+        Assert::same($settings->array('test.key'), ['not-array']);
     }
 
-    #[Test]
     public function returnsTypeDefaultWhenDefinitionHasNullDefaultAndNoValue(): void
     {
         $provider = new FakeSettingsProvider(values: []);
@@ -248,10 +229,9 @@ final class SettingsTest extends TestCase
             ],
         );
 
-        $this->assertSame('', $settings->string('app.name'));
+        Assert::same($settings->string('app.name'), '');
     }
 
-    #[Test]
     public function returnsDefinitionDefaultOverTypeDefault(): void
     {
         $provider = new FakeSettingsProvider(values: []);
@@ -263,6 +243,6 @@ final class SettingsTest extends TestCase
             ],
         );
 
-        $this->assertSame('my-app', $settings->string('app.name'));
+        Assert::same($settings->string('app.name'), 'my-app');
     }
 }

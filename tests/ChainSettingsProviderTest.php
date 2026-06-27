@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\ChainSettingsProvider;
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Expect;
+use Testo\Test;
 
-#[CoversClass(ChainSettingsProvider::class)]
-final class ChainSettingsProviderTest extends TestCase
+#[Test]
+#[Covers(ChainSettingsProvider::class)]
+final class ChainSettingsProviderTest
 {
-    #[Test]
     public function checksProvidersInOrder(): void
     {
         $primary = new FakeSettingsProvider(values: ['key1' => 'from-primary']);
@@ -21,12 +22,11 @@ final class ChainSettingsProviderTest extends TestCase
 
         $chain = new ChainSettingsProvider(providers: [$primary, $fallback]);
 
-        $this->assertTrue($chain->has('key1'));
-        $this->assertTrue($chain->has('key2'));
-        $this->assertFalse($chain->has('key3'));
+        Assert::true($chain->has('key1'));
+        Assert::true($chain->has('key2'));
+        Assert::false($chain->has('key3'));
     }
 
-    #[Test]
     public function returnsValueFromFirstProvider(): void
     {
         $primary = new FakeSettingsProvider(values: ['key1' => 'primary']);
@@ -34,10 +34,9 @@ final class ChainSettingsProviderTest extends TestCase
 
         $chain = new ChainSettingsProvider(providers: [$primary, $fallback]);
 
-        $this->assertSame('primary', $chain->get('key1'));
+        Assert::same($chain->get('key1'), 'primary');
     }
 
-    #[Test]
     public function fallsThroughToNextProvider(): void
     {
         $primary = new FakeSettingsProvider(values: []);
@@ -45,24 +44,22 @@ final class ChainSettingsProviderTest extends TestCase
 
         $chain = new ChainSettingsProvider(providers: [$primary, $fallback]);
 
-        $this->assertSame('fallback', $chain->get('key1'));
+        Assert::same($chain->get('key1'), 'fallback');
     }
 
-    #[Test]
     public function throwsWhenNoProviderHasValue(): void
     {
         $chain = new ChainSettingsProvider(providers: []);
 
-        $this->expectException(UnknownSettingException::class);
+        Expect::exception(UnknownSettingException::class);
 
         $chain->get('unknown');
     }
 
-    #[Test]
     public function emptyChainHasNothing(): void
     {
         $chain = new ChainSettingsProvider(providers: []);
 
-        $this->assertFalse($chain->has('any'));
+        Assert::false($chain->has('any'));
     }
 }

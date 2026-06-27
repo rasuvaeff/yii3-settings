@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\SettingState;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Test;
 
-#[CoversClass(SettingState::class)]
-final class SettingStateTest extends TestCase
+#[Test]
+#[Covers(SettingState::class)]
+final class SettingStateTest
 {
-    #[Test]
     public function holdsAllProperties(): void
     {
         $state = new SettingState(
@@ -24,15 +24,14 @@ final class SettingStateTest extends TestCase
             isWritable: true,
         );
 
-        $this->assertSame('mail.from', $state->key);
-        $this->assertSame('noreply@example.com', $state->effectiveValue);
-        $this->assertTrue($state->hasStoredOverride);
-        $this->assertSame('db', $state->source);
-        $this->assertFalse($state->isSecret);
-        $this->assertTrue($state->isWritable);
+        Assert::same($state->key, 'mail.from');
+        Assert::same($state->effectiveValue, 'noreply@example.com');
+        Assert::true($state->hasStoredOverride);
+        Assert::same($state->source, 'db');
+        Assert::false($state->isSecret);
+        Assert::true($state->isWritable);
     }
 
-    #[Test]
     public function secretSettingWithOverride(): void
     {
         $state = new SettingState(
@@ -44,12 +43,11 @@ final class SettingStateTest extends TestCase
             isWritable: true,
         );
 
-        $this->assertTrue($state->isSecret);
-        $this->assertTrue($state->hasStoredOverride);
-        $this->assertNull($state->effectiveValue);
+        Assert::true($state->isSecret);
+        Assert::true($state->hasStoredOverride);
+        Assert::null($state->effectiveValue);
     }
 
-    #[Test]
     public function configSourceSetting(): void
     {
         $state = new SettingState(
@@ -61,12 +59,11 @@ final class SettingStateTest extends TestCase
             isWritable: false,
         );
 
-        $this->assertSame('config', $state->source);
-        $this->assertFalse($state->hasStoredOverride);
-        $this->assertFalse($state->isWritable);
+        Assert::same($state->source, 'config');
+        Assert::false($state->hasStoredOverride);
+        Assert::false($state->isWritable);
     }
 
-    #[Test]
     public function defaultSourceSetting(): void
     {
         $state = new SettingState(
@@ -78,7 +75,7 @@ final class SettingStateTest extends TestCase
             isWritable: true,
         );
 
-        $this->assertSame('default', $state->source);
-        $this->assertSame(100, $state->effectiveValue);
+        Assert::same($state->source, 'default');
+        Assert::same($state->effectiveValue, 100);
     }
 }

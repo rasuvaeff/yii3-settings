@@ -4,21 +4,24 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\EnvSettingsProvider;
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingType;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Lifecycle\AfterTest;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 
-#[CoversClass(EnvSettingsProvider::class)]
-final class EnvSettingsProviderTest extends TestCase
+#[Test]
+#[Covers(EnvSettingsProvider::class)]
+final class EnvSettingsProviderTest
 {
     private EnvSettingsProvider $provider;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         putenv('TEST_APP_SETTING_MAIL_ENABLED=true');
         putenv('TEST_APP_SETTING_ORDERS_MAX_ITEMS=50');
@@ -32,46 +35,40 @@ final class EnvSettingsProviderTest extends TestCase
         );
     }
 
-    #[\Override]
-    protected function tearDown(): void
+    #[AfterTest]
+    public function tearDown(): void
     {
         putenv('TEST_APP_SETTING_MAIL_ENABLED');
         putenv('TEST_APP_SETTING_ORDERS_MAX_ITEMS');
     }
 
-    #[Test]
     public function hasReturnsTrueWhenEnvIsSet(): void
     {
-        $this->assertTrue($this->provider->has('mail.enabled'));
+        Assert::true($this->provider->has('mail.enabled'));
     }
 
-    #[Test]
     public function hasReturnsFalseWhenEnvNotSet(): void
     {
-        $this->assertFalse($this->provider->has('unknown.setting'));
+        Assert::false($this->provider->has('unknown.setting'));
     }
 
-    #[Test]
     public function hasReturnsFalseForUnknownDefinition(): void
     {
-        $this->assertFalse($this->provider->has('unknown'));
+        Assert::false($this->provider->has('unknown'));
     }
 
-    #[Test]
     public function getReturnsCastedEnvValue(): void
     {
-        $this->assertSame(50, $this->provider->get('orders.max_items'));
+        Assert::same($this->provider->get('orders.max_items'), 50);
     }
 
-    #[Test]
     public function hasReturnsFalseForDefinedKeyWithoutEnvVariable(): void
     {
         putenv('TEST_APP_SETTING_ORDERS_MAX_ITEMS');
 
-        $this->assertFalse($this->provider->has('orders.max_items'));
+        Assert::false($this->provider->has('orders.max_items'));
     }
 
-    #[Test]
     public function getThrowsForUnknownDefinition2(): void
     {
         $provider = new EnvSettingsProvider(
@@ -79,13 +76,14 @@ final class EnvSettingsProviderTest extends TestCase
             prefix: 'TEST_APP_SETTING_',
         );
 
-        $this->expectException(UnknownSettingException::class);
-        $this->expectExceptionMessage('Unknown setting "nonexistent"');
-
-        $provider->get('nonexistent');
+        try {
+            $provider->get('nonexistent');
+            Assert::fail('Expected UnknownSettingException');
+        } catch (UnknownSettingException $e) {
+            Assert::string($e->getMessage())->contains('Unknown setting "nonexistent"');
+        }
     }
 
-    #[Test]
     public function getThrowsForDefinedKeyWithoutEnvVariable(): void
     {
         $provider = new EnvSettingsProvider(
@@ -95,9 +93,11 @@ final class EnvSettingsProviderTest extends TestCase
             prefix: 'TEST_APP_SETTING_',
         );
 
-        $this->expectException(UnknownSettingException::class);
-        $this->expectExceptionMessage('Environment variable for setting "no.env" not found');
-
-        $provider->get('no.env');
+        try {
+            $provider->get('no.env');
+            Assert::fail('Expected UnknownSettingException');
+        } catch (UnknownSettingException $e) {
+            Assert::string($e->getMessage())->contains('Environment variable for setting "no.env" not found');
+        }
     }
 }

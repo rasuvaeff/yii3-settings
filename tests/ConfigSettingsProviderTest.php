@@ -4,21 +4,24 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Rasuvaeff\Yii3Settings\ConfigSettingsProvider;
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingType;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Expect;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 
-#[CoversClass(ConfigSettingsProvider::class)]
-final class ConfigSettingsProviderTest extends TestCase
+#[Test]
+#[Covers(ConfigSettingsProvider::class)]
+final class ConfigSettingsProviderTest
 {
     private ConfigSettingsProvider $provider;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $this->provider = new ConfigSettingsProvider(
             definitions: [
@@ -33,54 +36,46 @@ final class ConfigSettingsProviderTest extends TestCase
         );
     }
 
-    #[Test]
     public function hasReturnsTrueForDefinedSetting(): void
     {
-        $this->assertTrue($this->provider->has('mail.from'));
+        Assert::true($this->provider->has('mail.from'));
     }
 
-    #[Test]
     public function hasReturnsFalseForUnknownSetting(): void
     {
-        $this->assertFalse($this->provider->has('unknown'));
+        Assert::false($this->provider->has('unknown'));
     }
 
-    #[Test]
     public function getReturnsConfiguredValue(): void
     {
-        $this->assertSame('admin@example.com', $this->provider->get('mail.from'));
+        Assert::same($this->provider->get('mail.from'), 'admin@example.com');
     }
 
-    #[Test]
     public function getReturnsDefaultValueWhenNoExplicitValue(): void
     {
-        $this->assertSame(100, $this->provider->get('orders.max_items'));
+        Assert::same($this->provider->get('orders.max_items'), 100);
     }
 
-    #[Test]
     public function throwsForUnknownSetting(): void
     {
-        $this->expectException(UnknownSettingException::class);
+        Expect::exception(UnknownSettingException::class);
 
         $this->provider->get('unknown');
     }
 
-    #[Test]
     public function getDefinitionsReturnsDefinitions(): void
     {
         $definitions = $this->provider->getDefinitions();
 
-        $this->assertArrayHasKey('mail.from', $definitions);
-        $this->assertInstanceOf(SettingDefinition::class, $definitions['mail.from']);
+        Assert::array($definitions)->hasKeys('mail.from');
+        Assert::instanceOf($definitions['mail.from'], SettingDefinition::class);
     }
 
-    #[Test]
     public function castsConfiguredValuesUsingDefinitionType(): void
     {
-        $this->assertSame(8080, $this->provider->get('port'));
+        Assert::same($this->provider->get('port'), 8080);
     }
 
-    #[Test]
     public function normalizesArrayDefinitionsFromConfig(): void
     {
         $provider = new ConfigSettingsProvider(
@@ -94,22 +89,20 @@ final class ConfigSettingsProviderTest extends TestCase
 
         $definitions = $provider->getDefinitions();
 
-        $this->assertInstanceOf(SettingDefinition::class, $definitions['mail.from']);
-        $this->assertSame('admin@example.com', $provider->get('mail.from'));
+        Assert::instanceOf($definitions['mail.from'], SettingDefinition::class);
+        Assert::same($provider->get('mail.from'), 'admin@example.com');
     }
 
-    #[Test]
     public function normalizeDefinitionsConvertsArrayConfig(): void
     {
         $definitions = ConfigSettingsProvider::normalizeDefinitions([
             'orders.max_items' => ['type' => 'int', 'default' => 100],
         ]);
 
-        $this->assertInstanceOf(SettingDefinition::class, $definitions['orders.max_items']);
-        $this->assertSame(SettingType::Int, $definitions['orders.max_items']->type);
+        Assert::instanceOf($definitions['orders.max_items'], SettingDefinition::class);
+        Assert::same($definitions['orders.max_items']->type, SettingType::Int);
     }
 
-    #[Test]
     public function supportsNullDefaults(): void
     {
         $provider = new ConfigSettingsProvider(
@@ -118,6 +111,6 @@ final class ConfigSettingsProviderTest extends TestCase
             ],
         );
 
-        $this->assertNull($provider->get('nullable'));
+        Assert::null($provider->get('nullable'));
     }
 }

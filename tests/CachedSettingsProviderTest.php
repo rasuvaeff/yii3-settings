@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\CacheInterface;
 use Rasuvaeff\Yii3Settings\CachedSettingsProvider;
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingType;
+use Testo\Assert;
+use Testo\Codecov\Covers;
+use Testo\Expect;
+use Testo\Lifecycle\BeforeTest;
+use Testo\Test;
 use Yiisoft\Test\Support\SimpleCache\MemorySimpleCache;
 
-#[CoversClass(CachedSettingsProvider::class)]
-final class CachedSettingsProviderTest extends TestCase
+#[Test]
+#[Covers(CachedSettingsProvider::class)]
+final class CachedSettingsProviderTest
 {
     private const string DEFAULT_CACHE_KEY = 'yii3-settings.v1.mail.from';
 
@@ -23,8 +26,8 @@ final class CachedSettingsProviderTest extends TestCase
 
     private CachedSettingsProvider $provider;
 
-    #[\Override]
-    protected function setUp(): void
+    #[BeforeTest]
+    public function setUp(): void
     {
         $this->cache = new MemorySimpleCache();
         $inner = new FakeSettingsProvider(values: ['mail.from' => 'admin@example.com']);
@@ -40,82 +43,65 @@ final class CachedSettingsProviderTest extends TestCase
         );
     }
 
-    #[Test]
     public function hasReturnsTrueForDefinedSetting(): void
     {
-        $this->assertTrue($this->provider->has('mail.from'));
+        Assert::true($this->provider->has('mail.from'));
     }
 
-    #[Test]
     public function hasReturnsFalseForUnknownSetting(): void
     {
-        $this->assertFalse($this->provider->has('unknown'));
+        Assert::false($this->provider->has('unknown'));
     }
 
-    #[Test]
     public function getReturnsValueFromInnerOnFirstCall(): void
     {
-        $this->assertSame('admin@example.com', $this->provider->get('mail.from'));
+        Assert::same($this->provider->get('mail.from'), 'admin@example.com');
     }
 
-    #[Test]
     public function getCachesValueForSubsequentCalls(): void
     {
         $this->provider->get('mail.from');
 
-        $this->assertSame('admin@example.com', $this->cache->get(self::DEFAULT_CACHE_KEY));
+        Assert::same($this->cache->get(self::DEFAULT_CACHE_KEY), 'admin@example.com');
     }
 
-    #[Test]
     public function returnsCachedValueInsteadOfInner(): void
     {
         $this->cache->set(self::DEFAULT_CACHE_KEY, 'cached@example.com');
 
-        $this->assertSame('cached@example.com', $this->provider->get('mail.from'));
+        Assert::same($this->provider->get('mail.from'), 'cached@example.com');
     }
 
-    #[Test]
     public function throwsForUnknownSetting(): void
     {
-        $this->expectException(UnknownSettingException::class);
+        Expect::exception(UnknownSettingException::class);
 
         $this->provider->get('unknown');
     }
 
-    #[Test]
     public function clearRemovesCachedValue(): void
     {
         $this->provider->get('mail.from');
         $this->provider->clear('mail.from');
 
-        $this->assertFalse($this->cache->has(self::DEFAULT_CACHE_KEY));
+        Assert::false($this->cache->has(self::DEFAULT_CACHE_KEY));
     }
 
-    #[Test]
     public function usesConfiguredTtl(): void
     {
-        $cache = $this->createMock(CacheInterface::class);
-        $cache->method('get')->willReturn(null);
-        $cache->expects($this->once())->method('set')->with(
-            key: 'yii3-settings.v1.test.key',
-            value: 'value',
-            ttl: 120,
-        );
+        $cache = new SpyCache();
 
         $this->providerWith($cache, ttl: 120)->get('test.key');
+
+        Assert::count($cache->setCalls, 1);
+        Assert::same($cache->setCalls[0]['key'], 'yii3-settings.v1.test.key');
+        Assert::same($cache->setCalls[0]['value'], 'value');
+        Assert::same($cache->setCalls[0]['ttl'], 120);
     }
 
-    #[Test]
     public function usesDefaultTtlWhenNotProvided(): void
     {
-        $cache = $this->createMock(CacheInterface::class);
-        $cache->method('get')->willReturn(null);
-        $cache->expects($this->once())->method('set')->with(
-            key: 'yii3-settings.v1.test.key',
-            value: 'value',
-            ttl: 60,
-        );
-
+        $cache = new SpyCache();
         $inner = new FakeSettingsProvider(values: ['test.key' => 'value']);
         $provider = new CachedSettingsProvider(
             inner: $inner,
@@ -124,9 +110,11 @@ final class CachedSettingsProviderTest extends TestCase
         );
 
         $provider->get('test.key');
+
+        Assert::count($cache->setCalls, 1);
+        Assert::same($cache->setCalls[0]['ttl'], 60);
     }
 
-    #[Test]
     public function supportsCustomCacheNamespaceAndVersion(): void
     {
         $cache = new MemorySimpleCache();
@@ -141,10 +129,9 @@ final class CachedSettingsProviderTest extends TestCase
 
         $provider->get('test.key');
 
-        $this->assertTrue($cache->has('app-settings.v3.test.key'));
+        Assert::true($cache->has('app-settings.v3.test.key'));
     }
 
-    #[Test]
     public function getThrowsEarlyForUnknownSetting(): void
     {
         $provider = new CachedSettingsProvider(
@@ -154,13 +141,14 @@ final class CachedSettingsProviderTest extends TestCase
             ttl: 60,
         );
 
-        $this->expectException(UnknownSettingException::class);
-        $this->expectExceptionMessage('Unknown setting "unknown"');
-
-        $provider->get('unknown');
+        try {
+            $provider->get('unknown');
+            Assert::fail('Expected UnknownSettingException');
+        } catch (UnknownSettingException $e) {
+            Assert::string($e->getMessage())->contains('Unknown setting "unknown"');
+        }
     }
 
-    #[Test]
     public function fallsThroughToInnerWhenCacheGetThrows(): void
     {
         $provider = new CachedSettingsProvider(
@@ -170,10 +158,9 @@ final class CachedSettingsProviderTest extends TestCase
             ttl: 60,
         );
 
-        $this->assertSame('fallback', $provider->get('test.key'));
+        Assert::same($provider->get('test.key'), 'fallback');
     }
 
-    #[Test]
     public function setDelegatesToInnerAndInvalidatesCache(): void
     {
         $cache = new MemorySimpleCache();
@@ -186,18 +173,17 @@ final class CachedSettingsProviderTest extends TestCase
         );
 
         // Warm the cache with the old value.
-        $this->assertSame('old@example.com', $provider->get('mail.from'));
-        $this->assertTrue($cache->has(self::DEFAULT_CACHE_KEY));
+        Assert::same($provider->get('mail.from'), 'old@example.com');
+        Assert::true($cache->has(self::DEFAULT_CACHE_KEY));
 
         $provider->set('mail.from', 'new@example.com');
 
         // Cache entry is invalidated and the inner provider holds the new value.
-        $this->assertFalse($cache->has(self::DEFAULT_CACHE_KEY));
-        $this->assertSame('new@example.com', $inner->values()['mail.from']);
-        $this->assertSame('new@example.com', $provider->get('mail.from'));
+        Assert::false($cache->has(self::DEFAULT_CACHE_KEY));
+        Assert::same($inner->values()['mail.from'], 'new@example.com');
+        Assert::same($provider->get('mail.from'), 'new@example.com');
     }
 
-    #[Test]
     public function removeDelegatesToInnerAndInvalidatesCache(): void
     {
         $cache = new MemorySimpleCache();
@@ -210,15 +196,14 @@ final class CachedSettingsProviderTest extends TestCase
         );
 
         $provider->get('mail.from');
-        $this->assertTrue($cache->has(self::DEFAULT_CACHE_KEY));
+        Assert::true($cache->has(self::DEFAULT_CACHE_KEY));
 
         $provider->remove('mail.from');
 
-        $this->assertFalse($cache->has(self::DEFAULT_CACHE_KEY));
-        $this->assertFalse($inner->has('mail.from'));
+        Assert::false($cache->has(self::DEFAULT_CACHE_KEY));
+        Assert::false($inner->has('mail.from'));
     }
 
-    #[Test]
     public function setThrowsWhenInnerIsReadOnly(): void
     {
         $provider = new CachedSettingsProvider(
@@ -228,13 +213,14 @@ final class CachedSettingsProviderTest extends TestCase
             ttl: 60,
         );
 
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('inner provider is read-only');
-
-        $provider->set('mail.from', 'new@example.com');
+        try {
+            $provider->set('mail.from', 'new@example.com');
+            Assert::fail('Expected LogicException');
+        } catch (\LogicException $e) {
+            Assert::string($e->getMessage())->contains('inner provider is read-only');
+        }
     }
 
-    #[Test]
     public function removeThrowsWhenInnerIsReadOnly(): void
     {
         $provider = new CachedSettingsProvider(
@@ -244,7 +230,7 @@ final class CachedSettingsProviderTest extends TestCase
             ttl: 60,
         );
 
-        $this->expectException(\LogicException::class);
+        Expect::exception(\LogicException::class);
 
         $provider->remove('mail.from');
     }
