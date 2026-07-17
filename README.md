@@ -6,6 +6,7 @@
 [![Static Analysis](https://img.shields.io/github/actions/workflow/status/rasuvaeff/yii3-settings/static-analysis.yml?branch=master&label=psalm)](https://github.com/rasuvaeff/yii3-settings/actions)
 [![PHP](https://img.shields.io/packagist/dependency-v/rasuvaeff/yii3-settings/php)](https://packagist.org/packages/rasuvaeff/yii3-settings)
 [![License](https://img.shields.io/packagist/l/rasuvaeff/yii3-settings.svg)](LICENSE.md)
+[Русская версия](README.ru.md)
 
 Typed runtime settings for Yii3: typed getters, multiple providers, cache decorator, encryption contract, inspector.
 
