@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 — 2026-07-25
+
+- Ship an AI agent skill (`resources/skills/rasuvaeff-yii3-settings/SKILL.md` +
+  `extra.skills` in composer.json): projects using the `llm/skills` Composer
+  plugin get the skill synced into `.agents/skills/` automatically on install.
+
 ## 1.1.2 — 2026-06-30
 
 - Add `/benchmarks` and `/Makefile` to `.gitattributes` export-ignore.
