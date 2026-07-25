@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 — 2026-07-25
+
+- Reject trailing newlines in setting-key validation: anchor `SettingKey::KEY_PATTERN`
+  with `\z` instead of `$` (PCRE `$` matches before a trailing `\n`, which let
+  `"<key>\n"` pass and reach providers/storage).
+
 ## 1.2.0 — 2026-07-25
 
 - Ship an AI agent skill (`resources/skills/rasuvaeff-yii3-settings/SKILL.md` +
