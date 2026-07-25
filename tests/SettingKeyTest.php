@@ -29,4 +29,11 @@ final class SettingKeyTest
 
         new SettingKey('Invalid Key');
     }
+
+    public function rejectsKeyWithTrailingNewline(): void
+    {
+        Expect::exception(InvalidSettingKeyException::class);
+
+        new SettingKey("mail.from\n");
+    }
 }

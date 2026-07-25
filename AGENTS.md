@@ -56,7 +56,7 @@ make test
 
 ## Invariants & gotchas
 
-- Setting key regex: `/^[a-z][a-z0-9_.-]*$/`.
+- Setting key regex: `/^[a-z][a-z0-9_.-]*\z/`.
 - `cast()` always returns the definition's type — no silent type coercion beyond
   PHP's native `(int)`, `(string)`, etc.
 - Env provider maps: `prefix + upper(key)`, dots → underscores.

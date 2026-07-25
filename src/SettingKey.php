@@ -11,7 +11,7 @@ use Rasuvaeff\Yii3Settings\Exception\InvalidSettingKeyException;
  */
 final readonly class SettingKey implements \Stringable
 {
-    private const string KEY_PATTERN = '/^[a-z][a-z0-9_.-]*$/';
+    private const string KEY_PATTERN = '/^[a-z][a-z0-9_.-]*\z/';
 
     public function __construct(
         public string $value,
