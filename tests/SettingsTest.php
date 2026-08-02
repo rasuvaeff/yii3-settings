@@ -19,6 +19,8 @@ use Testo\Test;
 
 #[Test]
 #[Covers(Settings::class)]
+#[Covers(UnknownSettingException::class)]
+#[Covers(SettingTypeMismatchException::class)]
 final class SettingsTest
 {
     private Settings $settings;
