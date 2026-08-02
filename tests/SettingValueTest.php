@@ -13,6 +13,7 @@ use Testo\Test;
 
 #[Test]
 #[Covers(SettingValue::class)]
+#[Covers(SettingType::class)]
 final class SettingValueTest
 {
     #[DataProvider('normalizationProvider')]

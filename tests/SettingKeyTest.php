@@ -13,6 +13,7 @@ use Testo\Test;
 
 #[Test]
 #[Covers(SettingKey::class)]
+#[Covers(InvalidSettingKeyException::class)]
 final class SettingKeyTest
 {
     public function acceptsValidKey(): void
