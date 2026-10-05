@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Yii3Settings\Tests;
 
+use Rasuvaeff\Understudy\Understudy;
 use Rasuvaeff\Yii3Settings\ConfigSettingsProvider;
 use Rasuvaeff\Yii3Settings\Exception\SettingTypeMismatchException;
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
 use Rasuvaeff\Yii3Settings\SettingKey;
 use Rasuvaeff\Yii3Settings\Settings;
+use Rasuvaeff\Yii3Settings\SettingsProvider;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Expect;
 use Testo\Lifecycle\BeforeTest;
 use Testo\Test;
+
+use function Rasuvaeff\Understudy\when;
 
 #[Test]
 #[Covers(Settings::class)]
@@ -152,7 +156,7 @@ final class SettingsTest
 
     public function stringReturnsCastResultFromProvider(): void
     {
-        $provider = new FakeSettingsProvider(values: ['test.key' => 42]);
+        $provider = $this->providerWith('test.key', 42);
 
         $settings = new Settings(
             provider: $provider,
@@ -166,7 +170,7 @@ final class SettingsTest
 
     public function intReturnsCastResultFromProvider(): void
     {
-        $provider = new FakeSettingsProvider(values: ['test.key' => '123']);
+        $provider = $this->providerWith('test.key', '123');
 
         $settings = new Settings(
             provider: $provider,
@@ -180,7 +184,7 @@ final class SettingsTest
 
     public function floatReturnsCastResultFromProvider(): void
     {
-        $provider = new FakeSettingsProvider(values: ['test.key' => '3.14']);
+        $provider = $this->providerWith('test.key', '3.14');
 
         $settings = new Settings(
             provider: $provider,
@@ -194,7 +198,7 @@ final class SettingsTest
 
     public function boolReturnsCastResultFromProvider(): void
     {
-        $provider = new FakeSettingsProvider(values: ['test.key' => 1]);
+        $provider = $this->providerWith('test.key', 1);
 
         $settings = new Settings(
             provider: $provider,
@@ -208,7 +212,7 @@ final class SettingsTest
 
     public function arrayReturnsCastResultFromProvider(): void
     {
-        $provider = new FakeSettingsProvider(values: ['test.key' => 'not-array']);
+        $provider = $this->providerWith('test.key', 'not-array');
 
         $settings = new Settings(
             provider: $provider,
@@ -222,7 +226,7 @@ final class SettingsTest
 
     public function returnsTypeDefaultWhenDefinitionHasNullDefaultAndNoValue(): void
     {
-        $provider = new FakeSettingsProvider(values: []);
+        $provider = Understudy::for(SettingsProvider::class);
 
         $settings = new Settings(
             provider: $provider,
@@ -236,7 +240,7 @@ final class SettingsTest
 
     public function returnsDefinitionDefaultOverTypeDefault(): void
     {
-        $provider = new FakeSettingsProvider(values: []);
+        $provider = Understudy::for(SettingsProvider::class);
 
         $settings = new Settings(
             provider: $provider,
@@ -246,5 +250,14 @@ final class SettingsTest
         );
 
         Assert::same($settings->string('app.name'), 'my-app');
+    }
+
+    private function providerWith(string $key, mixed $value): SettingsProvider
+    {
+        $provider = Understudy::for(SettingsProvider::class);
+        when(fn() => $provider->has($key))->returns(true);
+        when(fn() => $provider->get($key))->returns($value);
+
+        return $provider;
     }
 }
