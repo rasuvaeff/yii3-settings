@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Rasuvaeff\Yii3Settings\Tests;
 
 use Psr\SimpleCache\CacheInterface;
+use Psr\SimpleCache\InvalidArgumentException;
+use Rasuvaeff\Understudy\Arg;
+use Rasuvaeff\Understudy\Understudy;
 use Rasuvaeff\Yii3Settings\CachedSettingsProvider;
 use Rasuvaeff\Yii3Settings\Exception\UnknownSettingException;
 use Rasuvaeff\Yii3Settings\SettingDefinition;
+use Rasuvaeff\Yii3Settings\SettingsProvider;
 use Rasuvaeff\Yii3Settings\SettingType;
 use Testo\Assert;
 use Testo\Codecov\Covers;
@@ -15,6 +19,9 @@ use Testo\Expect;
 use Testo\Lifecycle\BeforeTest;
 use Testo\Test;
 use Yiisoft\Test\Support\SimpleCache\MemorySimpleCache;
+
+use function Rasuvaeff\Understudy\verify;
+use function Rasuvaeff\Understudy\when;
 
 #[Test]
 #[Covers(CachedSettingsProvider::class)]
@@ -24,16 +31,19 @@ final class CachedSettingsProviderTest
 
     private MemorySimpleCache $cache;
 
+    private SettingsProvider $inner;
+
     private CachedSettingsProvider $provider;
 
     #[BeforeTest]
     public function setUp(): void
     {
         $this->cache = new MemorySimpleCache();
-        $inner = new FakeSettingsProvider(values: ['mail.from' => 'admin@example.com']);
+        $this->inner = Understudy::for(SettingsProvider::class);
+        when(fn() => $this->inner->get('mail.from'))->returns('admin@example.com');
 
         $this->provider = new CachedSettingsProvider(
-            inner: $inner,
+            inner: $this->inner,
             cache: $this->cache,
             definitions: [
                 'mail.from' => new SettingDefinition(key: 'mail.from', type: SettingType::String),
@@ -70,6 +80,8 @@ final class CachedSettingsProviderTest
         $this->cache->set(self::DEFAULT_CACHE_KEY, 'cached@example.com');
 
         Assert::same($this->provider->get('mail.from'), 'cached@example.com');
+
+        Understudy::unused($this->inner);
     }
 
     public function throwsForUnknownSetting(): void
@@ -89,20 +101,18 @@ final class CachedSettingsProviderTest
 
     public function usesConfiguredTtl(): void
     {
-        $cache = new SpyCache();
+        $cache = Understudy::for(CacheInterface::class);
 
         $this->providerWith($cache, ttl: 120)->get('test.key');
 
-        Assert::count($cache->setCalls, 1);
-        Assert::same($cache->setCalls[0]['key'], 'yii3-settings.v1.test.key');
-        Assert::same($cache->setCalls[0]['value'], 'value');
-        Assert::same($cache->setCalls[0]['ttl'], 120);
+        verify(fn() => $cache->set('yii3-settings.v1.test.key', 'value', 120), times: 1);
     }
 
     public function usesDefaultTtlWhenNotProvided(): void
     {
-        $cache = new SpyCache();
-        $inner = new FakeSettingsProvider(values: ['test.key' => 'value']);
+        $cache = Understudy::for(CacheInterface::class);
+        $inner = Understudy::for(SettingsProvider::class);
+        when(fn() => $inner->get('test.key'))->returns('value');
         $provider = new CachedSettingsProvider(
             inner: $inner,
             cache: $cache,
@@ -111,14 +121,14 @@ final class CachedSettingsProviderTest
 
         $provider->get('test.key');
 
-        Assert::count($cache->setCalls, 1);
-        Assert::same($cache->setCalls[0]['ttl'], 60);
+        verify(fn() => $cache->set('yii3-settings.v1.test.key', 'value', 60), times: 1);
     }
 
     public function supportsCustomCacheNamespaceAndVersion(): void
     {
         $cache = new MemorySimpleCache();
-        $inner = new FakeSettingsProvider(values: ['test.key' => 'value']);
+        $inner = Understudy::for(SettingsProvider::class);
+        when(fn() => $inner->get('test.key'))->returns('value');
         $provider = new CachedSettingsProvider(
             inner: $inner,
             cache: $cache,
@@ -134,8 +144,10 @@ final class CachedSettingsProviderTest
 
     public function getThrowsEarlyForUnknownSetting(): void
     {
+        $inner = Understudy::for(SettingsProvider::class);
+        when(fn() => $inner->get('unknown'))->returns('should-not-reach');
         $provider = new CachedSettingsProvider(
-            inner: new FakeSettingsProvider(values: ['unknown' => 'should-not-reach']),
+            inner: $inner,
             cache: new MemorySimpleCache(),
             definitions: [],
             ttl: 60,
@@ -147,13 +159,21 @@ final class CachedSettingsProviderTest
         } catch (UnknownSettingException $e) {
             Assert::string($e->getMessage())->contains('Unknown setting "unknown"');
         }
+
+        Understudy::unused($inner);
     }
 
     public function fallsThroughToInnerWhenCacheGetThrows(): void
     {
+        $cache = Understudy::for(CacheInterface::class);
+        when(fn() => $cache->get(Arg::any()))->throws(
+            new class extends \Exception implements InvalidArgumentException {},
+        );
+        $inner = Understudy::for(SettingsProvider::class);
+        when(fn() => $inner->get('test.key'))->returns('fallback');
         $provider = new CachedSettingsProvider(
-            inner: new FakeSettingsProvider(values: ['test.key' => 'fallback']),
-            cache: new ThrowingCache(),
+            inner: $inner,
+            cache: $cache,
             definitions: ['test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String)],
             ttl: 60,
         );
@@ -206,8 +226,9 @@ final class CachedSettingsProviderTest
 
     public function setThrowsWhenInnerIsReadOnly(): void
     {
+        $inner = Understudy::for(SettingsProvider::class);
         $provider = new CachedSettingsProvider(
-            inner: new FakeSettingsProvider(values: ['mail.from' => 'admin@example.com']),
+            inner: $inner,
             cache: new MemorySimpleCache(),
             definitions: ['mail.from' => new SettingDefinition(key: 'mail.from', type: SettingType::String)],
             ttl: 60,
@@ -219,12 +240,15 @@ final class CachedSettingsProviderTest
         } catch (\LogicException $e) {
             Assert::string($e->getMessage())->contains('inner provider is read-only');
         }
+
+        Understudy::unused($inner);
     }
 
     public function removeThrowsWhenInnerIsReadOnly(): void
     {
+        $inner = Understudy::strict(Understudy::for(SettingsProvider::class));
         $provider = new CachedSettingsProvider(
-            inner: new FakeSettingsProvider(values: ['mail.from' => 'admin@example.com']),
+            inner: $inner,
             cache: new MemorySimpleCache(),
             definitions: ['mail.from' => new SettingDefinition(key: 'mail.from', type: SettingType::String)],
             ttl: 60,
@@ -237,8 +261,11 @@ final class CachedSettingsProviderTest
 
     private function providerWith(CacheInterface $cache, int $ttl): CachedSettingsProvider
     {
+        $inner = Understudy::for(SettingsProvider::class);
+        when(fn() => $inner->get('test.key'))->returns('value');
+
         return new CachedSettingsProvider(
-            inner: new FakeSettingsProvider(values: ['test.key' => 'value']),
+            inner: $inner,
             cache: $cache,
             definitions: ['test.key' => new SettingDefinition(key: 'test.key', type: SettingType::String)],
             ttl: $ttl,
