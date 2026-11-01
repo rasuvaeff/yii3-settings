@@ -252,6 +252,19 @@ final class SettingsTest
         Assert::same($settings->string('app.name'), 'my-app');
     }
 
+    public function unknownSettingReadRaisesNoPhpWarning(): void
+    {
+        set_error_handler(static function (int $severity, string $message): never {
+            throw new \ErrorException($message, 0, $severity);
+        });
+
+        try {
+            Assert::same($this->settings->string('unknown'), '');
+        } finally {
+            restore_error_handler();
+        }
+    }
+
     private function providerWith(string $key, mixed $value): SettingsProvider
     {
         $provider = Understudy::for(SettingsProvider::class);

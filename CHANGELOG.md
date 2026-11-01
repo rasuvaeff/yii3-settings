@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Mutation testing now counts code the tests execute without naming it in `#[Covers]`
+  (`infection --with-uncovered`), with `PublicVisibility` off and signature defaults ignored
+  as in the monorepo template; overall MSI 80% -> 100% (a test now kills the former `Settings::resolve()` LogicalAnd survivor). No `src/` changes.
+
 ## 1.2.1 — 2026-07-25
 
 - Reject trailing newlines in setting-key validation: anchor `SettingKey::KEY_PATTERN`
