@@ -18,7 +18,7 @@ Typed runtime settings for Yii3: typed getters, multiple providers, cache decora
 
 ## Requirements
 
-- PHP 8.3+
+- PHP 8.3 – 8.6
 - `psr/simple-cache` ^3.0
 
 ## Installation

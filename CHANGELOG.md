@@ -5,6 +5,9 @@
 - Mutation testing now counts code the tests execute without naming it in `#[Covers]`
   (`infection --with-uncovered`), with `PublicVisibility` off and signature defaults ignored
   as in the monorepo template; overall MSI 80% -> 100% (a test now kills the former `Settings::resolve()` LogicalAnd survivor). No `src/` changes.
+- **Changed:** PHP 8.6 is supported: the `php` constraint is widened to
+  `8.3 - 8.6` (#29). CI runs PHP 8.6 as a regular matrix entry; the
+  backward-compatibility job runs on PHP 8.5.
 
 ## 1.2.1 — 2026-07-25
 
