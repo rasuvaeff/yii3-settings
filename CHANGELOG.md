@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.2 — 2026-11-22
 
 - Mutation testing now counts code the tests execute without naming it in `#[Covers]`
   (`infection --with-uncovered`), with `PublicVisibility` off and signature defaults ignored
