@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3 — 2026-11-27
+
+- Docs: the agent skill shows the key pattern with `\z` and says a missing value falls back to the definition default before the type default.
+
 ## 1.2.2 — 2026-11-22
 
 - Mutation testing now counts code the tests execute without naming it in `#[Covers]`

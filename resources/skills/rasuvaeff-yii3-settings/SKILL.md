@@ -25,8 +25,9 @@ decorator). Namespace `Rasuvaeff\Yii3Settings\`.
 
 2. **Typed getters throw on type mismatch.** `string()` on an `Int` setting
    throws `SettingTypeMismatchException` — match the getter to the
-   definition's `SettingType`. Unknown key: type default in non-strict mode,
-   `UnknownSettingException` in strict mode (never `null`).
+   definition's `SettingType`. Missing value: the definition's `default` if set, else
+   the type default, in non-strict mode; `UnknownSettingException` in strict mode
+   (never `null`).
 
 3. **`secret: true` is only valid for `SettingType::String`** — enforced in
    the `SettingDefinition` constructor; any other type throws.
@@ -57,7 +58,7 @@ $settings->string(key: 'mail.from');     // 'admin@example.com'
 $settings->int(key: 'orders.max_items'); // 100 (default, no value set)
 ```
 
-Setting keys must match `/^[a-z][a-z0-9_.-]*$/`. The env provider maps
+Setting keys must match `/^[a-z][a-z0-9_.-]*\z/`. The env provider maps
 `mail.enabled` → `APP_SETTING_MAIL_ENABLED` (prefix + upper + dots→underscores).
 
 ## Full API
